@@ -356,6 +356,7 @@ create table ONELEITO_BI.BI_Hecho_pago
 	BI_cliente_id int,
 	BI_porcentaje_descuento numeric(18,2),
 	BI_cuotas int,
+	BI_importe_cuota numeric(18,2),
     constraint FK_BI_medio_de_pago_id foreign key (BI_medio_de_pago_id) references ONELEITO_BI.BI_Dim_medio_de_pago(BI_medio_de_pago_id),
     constraint FK_BI_pago_ticket_id foreign key (BI_ticket_id) references ONELEITO_BI.BI_Dim_ticket(BI_ticket_id),
     constraint FK_BI_pago_cliente_id foreign key (BI_cliente_id) references ONELEITO_BI.BI_Dim_cliente(BI_cliente_id),
@@ -693,19 +694,21 @@ GO
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Pago
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Hecho_pago(BI_medio_de_pago_id,BI_ticket_id,BI_cliente_id,BI_porcentaje_descuento,BI_cuotas)
+	INSERT INTO ONELEITO_BI.BI_Hecho_pago(BI_medio_de_pago_id,BI_ticket_id,BI_cliente_id,BI_porcentaje_descuento,BI_cuotas,BI_importe_cuota)
 
 	SELECT DISTINCT 
 					pago_medio_pago AS BI_medio_de_pago,
 					pago_ticket AS BI_ticket_id,
 					DP.detalle_pago_cliente AS BI_cliente_id,
 					isnull(AVG(D.descuento_porcentaje), 0) AS BI_porcentaje_descuento,
-					DP.detalle_pago_coutas AS BI_cuotas
+					DP.detalle_pago_coutas AS BI_cuotas,
+					(ROUND((pago_importe/DP.detalle_pago_coutas),2)) AS BI_importe_cuota
 	FROM ONELEITO.Pago 
 	LEFT JOIN ONELEITO.Detalle_pago DP ON pago_detalle=DP.detalle_pago_id
 	LEFT JOIN ONELEITO.Descuentos_X_Medio_de_Pago DMP ON DP.detalle_pago_cliente=DMP.descuento_medio_id
 	LEFT JOIN ONELEITO.Descuento D ON DMP.descuento_id=D.descuento_id
-	GROUP BY pago_medio_pago,pago_ticket,DP.detalle_pago_cliente,DP.detalle_pago_coutas
+	WHERE pago_ticket=4586
+	GROUP BY pago_medio_pago,pago_ticket,DP.detalle_pago_cliente,pago_importe,DP.detalle_pago_coutas
 END
 GO
 
