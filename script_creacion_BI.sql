@@ -336,6 +336,9 @@ create table ONELEITO_BI.BI_Hecho_envio
 	BI_ticket_id int,
 	BI_ubicacion_id int,
 	BI_cliente_id int,
+	BI_envio_estimado datetime,
+	BI_envio_recibido datetime,
+	BI_envio_costo decimal (10,2)
     constraint FK_BI_envio_ticket_id foreign key (BI_ticket_id) references ONELEITO_BI.BI_Dim_ticket(BI_ticket_id),
     constraint FK_BI_envio_ubicacion_id foreign key (BI_ubicacion_id) references ONELEITO_BI.BI_Dim_ubicacion(BI_ubicacion_id),
     constraint FK_BI_envio_cliente_id foreign key (BI_cliente_id) references ONELEITO_BI.BI_Dim_cliente(BI_cliente_id),
@@ -644,14 +647,17 @@ GO
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Envio
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Hecho_envio(BI_ticket_id,BI_ubicacion_id,BI_cliente_id)
+	INSERT INTO ONELEITO_BI.BI_Hecho_envio(BI_ticket_id,BI_ubicacion_id,BI_cliente_id,BI_envio_estimado,BI_envio_recibido,BI_envio_costo)
 
 	SELECT DISTINCT 
 					envio_ticket as BI_ticket_id,
 					(SELECT BI_ubicacion_id FROM ONELEITO_BI.BI_Dim_cliente WHERE BI_cliente_id=envio_cliente) AS BI_ubicacion_id,
-					envio_cliente AS BI_cliente_id
+					envio_cliente AS BI_cliente_id,
+					envio_hora_fin,
+					envio_fecha_hora_entregado,
+					envio_costo
 	FROM ONELEITO.Envio 
-	GROUP BY envio_id,envio_ticket,envio_cliente
+	GROUP BY envio_id,envio_ticket,envio_cliente,envio_hora_fin,envio_fecha_hora_entregado,envio_costo
 END
 GO
 
@@ -743,6 +749,7 @@ JOIN ONELEITO_BI.BI_Dim_rango_etario RE ON RE.BI_rango_etario_id = em.BI_emplead
 JOIN ONELEITO_BI.BI_Dim_Caja ca on ca.BI_caja_id = ti.BI_caja_id
 JOIN ONELEITO_BI.BI_Dim_Tipo_Caja TC on ca.BI_tipo_caja = TC.BI_tipo_caja_id
 GROUP BY em.BI_empleado_rango_etario_id,CA.BI_tipo_caja
+
 
 go
 
