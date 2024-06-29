@@ -793,3 +793,14 @@ join ONELEITO_BI.BI_Dim_ticket on BI_Hecho_venta.BI_ticket_id = BI_Dim_ticket.BI
 join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_tiempo_id
 join ONELEITO_BI.BI_Hecho_pago on BI_Dim_ticket.BI_ticket_id = BI_Hecho_pago.BI_ticket_id
 group by BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes
+
+-- 8. Cantidad de envíos por rango etario de clientes para cada cuatrimestre de cada año.
+CREATE VIEW vista_8
+as
+SELECT re.BI_rango_etario,tiem.BI_anio,tiem.BI_cuatrimestre, COUNT(*) as cantidad_envios
+FROM ONELEITO_BI.BI_Hecho_envio he
+JOIN ONELEITO_BI.BI_Dim_ticket ti on ti.BI_ticket_id = he.BI_ticket_id
+JOIN ONELEITO_BI.BI_Dim_tiempo tiem on tiem.BI_tiempo_id = ti.BI_tiempo_id
+JOIN ONELEITO_BI.BI_Dim_cliente cl on cl.BI_cliente_id = he.BI_cliente_id
+JOIN ONELEITO_BI.BI_Dim_rango_etario re on re.BI_rango_etario_id = cl.BI_rango_etario_id
+group by re.BI_rango_etario,tiem.BI_anio,tiem.BI_cuatrimestre
