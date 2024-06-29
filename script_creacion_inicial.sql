@@ -107,8 +107,8 @@ BEGIN
         envio_id INT IDENTITY(1,1) NOT NULL,
         envio_ticket int NOT NULL, --FK con tkt
 		envio_fecha_programada DATETIME NOT NULL,
-		envio_hora_inicio DATETIME NULL,
-		envio_hora_fin DATETIME NULL,
+		envio_hora_inicio DECIMAL(18,0) NULL,
+		envio_hora_fin DECIMAL(18,0),
 		envio_cliente int not null, --FK con cliente
 		envio_costo DECIMAL(10, 2) not null,
 		envio_estado int not null, -- fk con estado
