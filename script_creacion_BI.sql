@@ -232,7 +232,10 @@ create table ONELEITO_BI.BI_Dim_subcategoria
 create table ONELEITO_BI.BI_Dim_promocion
 (
 	BI_promocion_id int not null primary key,
-    BI_descripcion nvarchar(100)
+    BI_descripcion nvarchar(100),
+	BI_categoria int,
+	BI_regla_descuento decimal(10,2),
+	constraint FK_BI_categoria foreign key (BI_categoria) references ONELEITO_BI.BI_Dim_categoria(BI_categoria_id)
 )
 
 create table ONELEITO_BI.BI_Dim_producto
@@ -508,10 +511,16 @@ GO
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Promocion
 AS
 begin
-    insert into ONELEITO_BI.BI_Dim_promocion(BI_promocion_id,BI_descripcion)
+    insert into ONELEITO_BI.BI_Dim_promocion(BI_descripcion,BI_categoria,BI_regla_descuento)
 
-	SELECT distinct promocion_id, promocion_descripcion
+	select distinct promocion_descripcion, Categoria.categoria_id, Regla.regla_descuento_aplicable
 	from ONELEITO.Promocion
+	join ONELEITO.Regla on ONELEITO.Promocion.promocion_regla = ONELEITO.Regla.regla_id
+	join ONELEITO.Producto_Ticket_X_Promocion on ONELEITO.Promocion.promocion_id = ONELEITO.Producto_Ticket_X_Promocion.promocion_id
+	join ONELEITO.Productos_X_Tickets on ONELEITO.Producto_Ticket_X_Promocion.producto_ticket_id = ONELEITO.Productos_X_Tickets.producto_ticket_id
+	join ONELEITO.Producto on ONELEITO.Productos_X_Tickets.producto_id = ONELEITO.Producto.producto_id
+	join ONELEITO.Subcategoria on ONELEITO.Producto.producto_subcategoria = ONELEITO.Subcategoria.subcategoria_id
+	join ONELEITO.Categoria on ONELEITO.Subcategoria.subcategoria_categoria = ONELEITO.Categoria.categoria_id
 END
 GO
 
@@ -838,3 +847,16 @@ JOIN
 ORDER BY 
     he.BI_envio_costo DESC;
 GO
+
+go
+
+-- 6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
+create view ONELEITO_BI.Vista_6
+as
+select top 3 BI_Dim_categoria.BI_categoria_nombre, avg(BI_regla_descuento) as promedio_descuento, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre
+from ONELEITO_BI.BI_Dim_Promocion
+join ONELEITO_BI.BI_Dim_categoria on BI_Dim_Promocion.BI_categoria = BI_Dim_categoria.BI_categoria_id
+join ONELEITO_BI.BI_Hecho_venta on BI_Dim_Promocion.BI_promocion_id = BI_Hecho_venta.BI_promocion_id
+join ONELEITO_BI.BI_Dim_ticket on BI_Hecho_venta.BI_ticket_id = BI_Dim_ticket.BI_ticket_id
+join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_tiempo_id
+group by BI_categoria, BI_descripcion, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre
