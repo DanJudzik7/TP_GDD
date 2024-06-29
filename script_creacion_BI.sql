@@ -784,4 +784,12 @@ join ONELEITO_BI.BI_Dim_turno on BI_Dim_ticket.BI_turno_id = BI_Dim_turno.BI_tur
 group by BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes, BI_Dim_turno.BI_turno_inicio, BI_Dim_turno.BI_turno_fin
 GO
 
--- Versión para descargar
+-- 5. Porcentaje de descuento aplicados en función del total de los tickets según el mes de cada año.
+create view ONELEITO_BI.Vista_5
+as
+select avg(BI_porcentaje_descuento) as porcentaje_descuento, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes
+from ONELEITO_BI.BI_Hecho_venta
+join ONELEITO_BI.BI_Dim_ticket on BI_Hecho_venta.BI_ticket_id = BI_Dim_ticket.BI_ticket_id
+join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_tiempo_id
+join ONELEITO_BI.BI_Hecho_pago on BI_Dim_ticket.BI_ticket_id = BI_Hecho_pago.BI_ticket_id
+group by BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes
