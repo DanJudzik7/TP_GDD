@@ -336,8 +336,8 @@ create table ONELEITO_BI.BI_Hecho_envio
 	BI_ticket_id int,
 	BI_ubicacion_id int,
 	BI_cliente_id int,
-	BI_envio_hora_estimada_inicio DECIMAL(18,0),
-	BI_envio_hora_estimada_fin DECIMAL(18,0),
+	BI_envio_hora_estimada_inicio DATETIME,
+	BI_envio_hora_estimada_fin DATETIME,
 	BI_envio_recibido datetime,
 	BI_envio_costo decimal (10,2)
     constraint FK_BI_envio_ticket_id foreign key (BI_ticket_id) references ONELEITO_BI.BI_Dim_ticket(BI_ticket_id),
@@ -655,12 +655,12 @@ BEGIN
 					envio_ticket as BI_ticket_id,
 					(SELECT BI_ubicacion_id FROM ONELEITO_BI.BI_Dim_cliente WHERE BI_cliente_id=envio_cliente) AS BI_ubicacion_id,
 					envio_cliente AS BI_cliente_id,
-					envio_hora_inicio,
-					envio_hora_fin,
+					DATEADD(MINUTE,CAST(envio_hora_inicio* 60 AS INT),envio_fecha_programada),
+					DATEADD(MINUTE,CAST(envio_hora_fin* 60 AS INT),envio_fecha_programada),
 					envio_fecha_hora_entregado,
 					envio_costo
 	FROM ONELEITO.Envio 
-	GROUP BY envio_id,envio_ticket,envio_cliente,envio_hora_inicio,envio_hora_fin,envio_fecha_hora_entregado,envio_costo
+	GROUP BY envio_id,envio_ticket,envio_cliente,envio_hora_inicio,envio_hora_fin,envio_fecha_hora_entregado,envio_costo,envio_fecha_programada
 END
 GO
 
@@ -796,8 +796,24 @@ join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_
 join ONELEITO_BI.BI_Hecho_pago on BI_Dim_ticket.BI_ticket_id = BI_Hecho_pago.BI_ticket_id
 group by BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes
 GO
+/*
+7. Porcentaje de cumplimiento de envíos en los tiempos programados por
+sucursal por año/mes (desvío)
+*/
+create view ONELEITO_BI.Vista_7
+AS
+SELECT SU.BI_sucursal_id, t.BI_anio, t.BI_mes,
+SUM(CASE WHEN (he.BI_envio_recibido between he.BI_envio_hora_estimada_inicio and he.BI_envio_hora_estimada_fin) THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS porcentaje
+FROM ONELEITO_BI.BI_Hecho_envio he
+JOIN ONELEITO_BI.BI_Dim_ticket ti ON ti.BI_ticket_id = he.BI_ticket_id
+JOIN ONELEITO_BI.BI_Dim_sucursal SU on SU.BI_sucursal_id = ti.BI_sucursal_id
+JOIN ONELEITO_BI.BI_Dim_tiempo t ON t.BI_tiempo_id = ti.BI_tiempo_id
+GROUP BY SU.BI_sucursal_id, t.BI_anio, t.BI_mes
+
+GO
+
 -- 8. Cantidad de envíos por rango etario de clientes para cada cuatrimestre de cada año.
-CREATE VIEW ONELEITA_BI.Vista_8
+CREATE VIEW ONELEITO_BI.Vista_8
 as
 SELECT re.BI_rango_etario,tiem.BI_anio,tiem.BI_cuatrimestre, COUNT(*) as cantidad_envios
 FROM ONELEITO_BI.BI_Hecho_envio he
