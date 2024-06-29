@@ -351,6 +351,7 @@ create table ONELEITO_BI.BI_Hecho_pago
 	BI_ticket_id int,
 	BI_cliente_id int,
 	BI_porcentaje_descuento numeric(18,2),
+	BI_cuotas int,
     constraint FK_BI_medio_de_pago_id foreign key (BI_medio_de_pago_id) references ONELEITO_BI.BI_Dim_medio_de_pago(BI_medio_de_pago_id),
     constraint FK_BI_pago_ticket_id foreign key (BI_ticket_id) references ONELEITO_BI.BI_Dim_ticket(BI_ticket_id),
     constraint FK_BI_pago_cliente_id foreign key (BI_cliente_id) references ONELEITO_BI.BI_Dim_cliente(BI_cliente_id),
@@ -681,13 +682,14 @@ GO
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Pago
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Hecho_pago(BI_medio_de_pago_id,BI_ticket_id,BI_cliente_id,BI_porcentaje_descuento)
+	INSERT INTO ONELEITO_BI.BI_Hecho_pago(BI_medio_de_pago_id,BI_ticket_id,BI_cliente_id,BI_porcentaje_descuento,BI_cuotas)
 
 	SELECT DISTINCT 
 					pago_medio_pago AS BI_medio_de_pago,
 					pago_ticket AS BI_ticket_id,
 					DP.detalle_pago_cliente AS BI_cliente_id,
-					isnull(AVG(D.descuento_porcentaje), 0) AS BI_porcentaje_descuento
+					isnull(AVG(D.descuento_porcentaje), 0) AS BI_porcentaje_descuento,
+					DP.detalle_pago_coutas AS BI_cuotas
 	FROM ONELEITO.Pago 
 	LEFT JOIN ONELEITO.Detalle_pago DP ON pago_detalle=DP.detalle_pago_id
 	LEFT JOIN ONELEITO.Descuentos_X_Medio_de_Pago DMP ON DP.detalle_pago_cliente=DMP.descuento_medio_id
@@ -782,4 +784,12 @@ join ONELEITO_BI.BI_Dim_turno on BI_Dim_ticket.BI_turno_id = BI_Dim_turno.BI_tur
 group by BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes, BI_Dim_turno.BI_turno_inicio, BI_Dim_turno.BI_turno_fin
 GO
 
--- Versión para descargar
+-- 5. Porcentaje de descuento aplicados en función del total de los tickets según el mes de cada año.
+create view ONELEITO_BI.Vista_5
+as
+select avg(BI_porcentaje_descuento) as porcentaje_descuento, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes
+from ONELEITO_BI.BI_Hecho_venta
+join ONELEITO_BI.BI_Dim_ticket on BI_Hecho_venta.BI_ticket_id = BI_Dim_ticket.BI_ticket_id
+join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_tiempo_id
+join ONELEITO_BI.BI_Hecho_pago on BI_Dim_ticket.BI_ticket_id = BI_Hecho_pago.BI_ticket_id
+group by BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes
