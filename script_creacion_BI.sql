@@ -231,7 +231,8 @@ create table ONELEITO_BI.BI_Dim_subcategoria
 
 create table ONELEITO_BI.BI_Dim_promocion
 (
-	BI_promocion_id int not null primary key,
+	BI_promocion_id int identity (1,1) not null primary key,
+	BI_promocion_original_id int not null,
     BI_descripcion nvarchar(100),
 	BI_categoria int,
 	BI_regla_descuento decimal(10,2),
@@ -512,7 +513,7 @@ GO
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Promocion
 AS
 begin
-    insert into ONELEITO_BI.BI_Dim_promocion(BI_promocion_id, BI_descripcion,BI_categoria,BI_regla_descuento)
+    insert into ONELEITO_BI.BI_Dim_promocion(BI_promocion_original_id, BI_descripcion,BI_categoria,BI_regla_descuento)
 
 	select distinct Promocion.promocion_id, promocion_descripcion, Categoria.categoria_id, Regla.regla_descuento_aplicable
 	from ONELEITO.Promocion
@@ -812,13 +813,13 @@ GO
 -- 6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
 create view ONELEITO_BI.Vista_6
 as
-select top 3 BI_Dim_categoria.BI_categoria_nombre, avg(BI_regla_descuento) as promedio_descuento, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre
+select top 3 BI_Dim_categoria.BI_categoria_nombre, sum(BI_regla_descuento) as promedio_descuento, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre
 from ONELEITO_BI.BI_Dim_Promocion
 join ONELEITO_BI.BI_Dim_categoria on BI_Dim_Promocion.BI_categoria = BI_Dim_categoria.BI_categoria_id
 join ONELEITO_BI.BI_Hecho_venta on BI_Dim_Promocion.BI_promocion_id = BI_Hecho_venta.BI_promocion_id
 join ONELEITO_BI.BI_Dim_ticket on BI_Hecho_venta.BI_ticket_id = BI_Dim_ticket.BI_ticket_id
 join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_tiempo_id
-group by BI_categoria, BI_descripcion, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre
+group by BI_categoria, BI_descripcion, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre, BI_categoria_nombre
 GO
 
 /*

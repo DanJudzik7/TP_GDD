@@ -93,6 +93,14 @@ END
 CLOSE proc_cursor
 DEALLOCATE proc_cursor
 
+-- Eliminar Vistas
+SET @Sql = '';
+SELECT @Sql = @Sql + 'DROP VIEW ' + QUOTENAME(@SchemaName) + '.' + QUOTENAME(v.name) + '; '
+FROM sys.views v
+JOIN sys.schemas s ON v.schema_id = s.schema_id
+WHERE s.name = @SchemaName;
+EXEC sp_executesql @Sql;
+
 -- Eliminar el esquema
 SET @sql = 'DROP SCHEMA [' + @schemaName + ']'
 EXEC sp_executesql @sql
