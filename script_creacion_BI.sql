@@ -708,7 +708,6 @@ BEGIN
 	LEFT JOIN ONELEITO.Detalle_pago DP ON pago_detalle=DP.detalle_pago_id
 	LEFT JOIN ONELEITO.Descuentos_X_Medio_de_Pago DMP ON DP.detalle_pago_cliente=DMP.descuento_medio_id
 	LEFT JOIN ONELEITO.Descuento D ON DMP.descuento_id=D.descuento_id
-	WHERE pago_ticket=4586
 	GROUP BY pago_medio_pago,pago_ticket,DP.detalle_pago_cliente,pago_importe,DP.detalle_pago_coutas
 END
 GO
@@ -864,3 +863,46 @@ JOIN
 ORDER BY 
     he.BI_envio_costo DESC;
 GO
+/*Las 3 sucursales con el mayor importe de pagos en cuotas, según el medio de
+pago, mes y año. Se calcula sumando los importes totales de todas las ventas en
+cuotas.*/
+CREATE VIEW ONELEITO_BI.Vista_10 AS
+SELECT top 3
+    s.BI_nombre AS Sucursal,
+    t.BI_anio AS Año,
+    t.BI_mes AS Mes,
+    mp.BI_medio_de_pago_tipo AS MedioDePago,
+    SUM(hp.BI_importe_cuota) AS TotalImporteCuotas
+FROM ONELEITO_BI.BI_HECHO_PAGO hp
+JOIN ONELEITO_BI.BI_DIM_TICKET tkt ON tkt.BI_ticket_id = hp.BI_ticket_id
+JOIN ONELEITO_BI.BI_DIM_SUCURSAL s ON s.BI_sucursal_id = tkt.BI_sucursal_id
+JOIN ONELEITO_BI.BI_DIM_TIEMPO t ON t.BI_tiempo_id = tkt.BI_tiempo_id
+JOIN ONELEITO_BI.BI_DIM_MEDIO_DE_PAGO mp ON mp.BI_medio_de_pago_id = hp.BI_medio_de_pago_id
+GROUP BY 
+    s.BI_nombre,
+    t.BI_anio,
+    t.BI_mes,
+    mp.BI_medio_de_pago_tipo
+HAVING 
+    SUM(hp.BI_importe_cuota) IN (    
+	SELECT TOP 3 SUM(hp2.BI_importe_cuota)
+        FROM ONELEITO_BI.BI_HECHO_PAGO hp2
+        JOIN ONELEITO_BI.BI_DIM_TICKET tkt2 ON tkt2.BI_ticket_id = hp2.BI_ticket_id
+        JOIN ONELEITO_BI.BI_DIM_SUCURSAL s2 ON s2.BI_sucursal_id = tkt2.BI_sucursal_id
+        JOIN ONELEITO_BI.BI_DIM_TIEMPO t2 ON t2.BI_tiempo_id = tkt2.BI_tiempo_id
+        JOIN ONELEITO_BI.BI_DIM_MEDIO_DE_PAGO mp2 ON mp2.BI_medio_de_pago_id = hp2.BI_medio_de_pago_id
+        WHERE 
+            t2.BI_anio = t.BI_anio AND t2.BI_mes = t.BI_mes AND mp2.BI_medio_de_pago_tipo = mp.BI_medio_de_pago_tipo
+        GROUP BY 
+            s2.BI_nombre,
+            t2.BI_anio,
+            t2.BI_mes,
+            mp2.BI_medio_de_pago_tipo
+        ORDER BY 
+            SUM(hp2.BI_importe_cuota) DESC
+    )
+ORDER BY 
+    TotalImporteCuotas DESC,
+    t.BI_anio,
+    t.BI_mes,
+    mp.BI_medio_de_pago_tipo;
