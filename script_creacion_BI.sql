@@ -735,6 +735,24 @@ JOIN ONELEITO_BI.BI_Dim_ubicacion U on s.BI_ubicacion_id = U.BI_ubicacion_id
 group by U.BI_ubicacion_localidad,DT.BI_anio, DT.BI_mes
 
 go
+/*
+2. Cantidad unidades promedio. Cantidad promedio de artículos que se venden
+en función de los tickets según el turno para cada cuatrimestre de cada año. Se
+obtiene sumando la cantidad de artículos de todos los tickets correspondientes
+sobre la cantidad de tickets. Si un producto tiene más de una unidad en un ticket,
+para el indicador se consideran todas las unidades.
+*/
+CREATE VIEW ONELEITO_BI.Vista_2 AS
+SELECT tmp.BI_cuatrimestre, tmp.BI_anio,trn.BI_turno_inicio,trn.BI_turno_fin,
+cast(COUNT(hv.BI_producto_id) as float) / cast(COUNT(DISTINCT hv.BI_ticket_id) as float) as CantidadUnidadesPromedio
+FROM ONELEITO_BI.BI_Hecho_venta hv
+JOIN ONELEITO_BI.BI_Dim_ticket tkt on tkt.BI_ticket_id = hv.BI_ticket_id 
+JOIN ONELEITO_BI.BI_Dim_tiempo tmp on tmp.BI_tiempo_id = tkt.BI_tiempo_id
+JOIN ONELEITO_BI.BI_Dim_turno trn on trn.BI_turno_id = tkt.BI_turno_id
+join ONELEITO_BI.BI_Dim_producto pm on pm.BI_producto_id = hv.BI_producto_id
+group by tmp.BI_cuatrimestre, tmp.BI_anio,trn.BI_turno_inicio,trn.BI_turno_fin
+
+GO
 /* 3. Porcentaje anual de ventas registradas por rango etario del empleado según el
 tipo de caja para cada cuatrimestre. Se calcula tomando la cantidad de ventas
 correspondientes sobre el total de ventas anual.*/
