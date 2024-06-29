@@ -807,3 +807,18 @@ JOIN ONELEITO_BI.BI_Dim_cliente cl on cl.BI_cliente_id = he.BI_cliente_id
 JOIN ONELEITO_BI.BI_Dim_rango_etario re on re.BI_rango_etario_id = cl.BI_rango_etario_id
 group by re.BI_rango_etario,tiem.BI_anio,tiem.BI_cuatrimestre
 GO
+
+-- 9. Las 5 localidades (tomando la localidad del cliente) con mayor costo de envío.
+CREATE VIEW Vista_9 AS
+SELECT TOP 5 
+    UB.BI_ubicacion_localidad, 
+    he.BI_envio_costo
+FROM 
+    ONELEITO_BI.BI_Hecho_envio he
+JOIN 
+    ONELEITO_BI.BI_Dim_cliente cl ON cl.BI_cliente_id = he.BI_cliente_id
+JOIN 
+    ONELEITO_BI.BI_Dim_ubicacion UB ON UB.BI_ubicacion_id = cl.BI_ubicacion_id
+ORDER BY 
+    he.BI_envio_costo DESC;
+GO
