@@ -336,7 +336,8 @@ create table ONELEITO_BI.BI_Hecho_envio
 	BI_ticket_id int,
 	BI_ubicacion_id int,
 	BI_cliente_id int,
-	BI_envio_estimado datetime,
+	BI_envio_hora_estimada_inicio DECIMAL(18,0),
+	BI_envio_hora_estimada_fin DECIMAL(18,0),
 	BI_envio_recibido datetime,
 	BI_envio_costo decimal (10,2)
     constraint FK_BI_envio_ticket_id foreign key (BI_ticket_id) references ONELEITO_BI.BI_Dim_ticket(BI_ticket_id),
@@ -648,17 +649,18 @@ GO
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Envio
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Hecho_envio(BI_ticket_id,BI_ubicacion_id,BI_cliente_id,BI_envio_estimado,BI_envio_recibido,BI_envio_costo)
+	INSERT INTO ONELEITO_BI.BI_Hecho_envio(BI_ticket_id,BI_ubicacion_id,BI_cliente_id,BI_envio_hora_estimada_inicio,BI_envio_hora_estimada_fin,BI_envio_recibido,BI_envio_costo)
 
 	SELECT DISTINCT 
 					envio_ticket as BI_ticket_id,
 					(SELECT BI_ubicacion_id FROM ONELEITO_BI.BI_Dim_cliente WHERE BI_cliente_id=envio_cliente) AS BI_ubicacion_id,
 					envio_cliente AS BI_cliente_id,
+					envio_hora_inicio,
 					envio_hora_fin,
 					envio_fecha_hora_entregado,
 					envio_costo
 	FROM ONELEITO.Envio 
-	GROUP BY envio_id,envio_ticket,envio_cliente,envio_hora_fin,envio_fecha_hora_entregado,envio_costo
+	GROUP BY envio_id,envio_ticket,envio_cliente,envio_hora_inicio,envio_hora_fin,envio_fecha_hora_entregado,envio_costo
 END
 GO
 
@@ -795,7 +797,7 @@ join ONELEITO_BI.BI_Hecho_pago on BI_Dim_ticket.BI_ticket_id = BI_Hecho_pago.BI_
 group by BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes
 
 -- 8. Cantidad de envíos por rango etario de clientes para cada cuatrimestre de cada año.
-CREATE VIEW vista_8
+CREATE VIEW ONELEITA_BI.Vista_8
 as
 SELECT re.BI_rango_etario,tiem.BI_anio,tiem.BI_cuatrimestre, COUNT(*) as cantidad_envios
 FROM ONELEITO_BI.BI_Hecho_envio he
