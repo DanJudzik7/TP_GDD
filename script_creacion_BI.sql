@@ -511,9 +511,9 @@ GO
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Promocion
 AS
 begin
-    insert into ONELEITO_BI.BI_Dim_promocion(BI_descripcion,BI_categoria,BI_regla_descuento)
+    insert into ONELEITO_BI.BI_Dim_promocion(BI_promocion_id, BI_descripcion,BI_categoria,BI_regla_descuento)
 
-	select distinct promocion_descripcion, Categoria.categoria_id, Regla.regla_descuento_aplicable
+	select distinct Promocion.promocion_id, promocion_descripcion, Categoria.categoria_id, Regla.regla_descuento_aplicable
 	from ONELEITO.Promocion
 	join ONELEITO.Regla on ONELEITO.Promocion.promocion_regla = ONELEITO.Regla.regla_id
 	join ONELEITO.Producto_Ticket_X_Promocion on ONELEITO.Promocion.promocion_id = ONELEITO.Producto_Ticket_X_Promocion.promocion_id
@@ -738,7 +738,7 @@ localidad, año y mes. Se calcula en función de la sumatoria del importe de las
 ventas sobre el total de las mismas.
 */
 
-CREATE VIEW ONELEITO_BI.VISTA_1 AS
+CREATE VIEW ONELEITO_BI.Vista_1 AS
 SELECT U.BI_ubicacion_localidad,DT.BI_anio, DT.BI_mes,AVG(hv.BI_importe_producto) as 'Promedio mensual por localidad'
 FROM ONELEITO_BI.BI_Hecho_venta hv
 JOIN ONELEITO_BI.BI_Dim_ticket t on hv.BI_ticket_id = t.BI_ticket_id
@@ -805,6 +805,19 @@ join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_
 join ONELEITO_BI.BI_Hecho_pago on BI_Dim_ticket.BI_ticket_id = BI_Hecho_pago.BI_ticket_id
 group by BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes
 GO
+
+-- 6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
+create view ONELEITO_BI.Vista_6
+as
+select top 3 BI_Dim_categoria.BI_categoria_nombre, avg(BI_regla_descuento) as promedio_descuento, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre
+from ONELEITO_BI.BI_Dim_Promocion
+join ONELEITO_BI.BI_Dim_categoria on BI_Dim_Promocion.BI_categoria = BI_Dim_categoria.BI_categoria_id
+join ONELEITO_BI.BI_Hecho_venta on BI_Dim_Promocion.BI_promocion_id = BI_Hecho_venta.BI_promocion_id
+join ONELEITO_BI.BI_Dim_ticket on BI_Hecho_venta.BI_ticket_id = BI_Dim_ticket.BI_ticket_id
+join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_tiempo_id
+group by BI_categoria, BI_descripcion, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre
+GO
+
 /*
 7. Porcentaje de cumplimiento de envíos en los tiempos programados por
 sucursal por año/mes (desvío)
@@ -834,7 +847,7 @@ group by re.BI_rango_etario,tiem.BI_anio,tiem.BI_cuatrimestre
 GO
 
 -- 9. Las 5 localidades (tomando la localidad del cliente) con mayor costo de envío.
-CREATE VIEW Vista_9 AS
+CREATE VIEW ONELEITO_BI.Vista_9 AS
 SELECT TOP 5 
     UB.BI_ubicacion_localidad, 
     he.BI_envio_costo
@@ -847,16 +860,3 @@ JOIN
 ORDER BY 
     he.BI_envio_costo DESC;
 GO
-
-go
-
--- 6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
-create view ONELEITO_BI.Vista_6
-as
-select top 3 BI_Dim_categoria.BI_categoria_nombre, avg(BI_regla_descuento) as promedio_descuento, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre
-from ONELEITO_BI.BI_Dim_Promocion
-join ONELEITO_BI.BI_Dim_categoria on BI_Dim_Promocion.BI_categoria = BI_Dim_categoria.BI_categoria_id
-join ONELEITO_BI.BI_Hecho_venta on BI_Dim_Promocion.BI_promocion_id = BI_Hecho_venta.BI_promocion_id
-join ONELEITO_BI.BI_Dim_ticket on BI_Hecho_venta.BI_ticket_id = BI_Dim_ticket.BI_ticket_id
-join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_tiempo_id
-group by BI_categoria, BI_descripcion, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre
