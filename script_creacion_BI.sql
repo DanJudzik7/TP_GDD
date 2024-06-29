@@ -327,7 +327,7 @@ create table ONELEITO_BI.BI_Hecho_venta
     constraint FK_BI_ticket_id foreign key (BI_ticket_id) references ONELEITO_BI.BI_Dim_ticket(BI_ticket_id),
     constraint FK_BI_promocion_id foreign key (BI_promocion_id) references ONELEITO_BI.BI_Dim_promocion(BI_promocion_id),
     BI_importe_producto numeric(18,2),
-	cantidad int
+	BI_cantidad int
 )
 
 create table ONELEITO_BI.BI_Hecho_envio
@@ -664,7 +664,7 @@ GO
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Venta
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Hecho_venta(BI_producto_id,BI_ticket_id,BI_promocion_id,BI_importe_producto,cantidad)
+	INSERT INTO ONELEITO_BI.BI_Hecho_venta(BI_producto_id,BI_ticket_id,BI_promocion_id,BI_importe_producto,BI_cantidad)
 
 	SELECT DISTINCT 
                     PXT1.producto_id AS BI_producto_id,
