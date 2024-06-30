@@ -209,10 +209,7 @@ create table ONELEITO_BI.BI_Dim_ubicacion
 create table ONELEITO_BI.BI_Dim_medio_de_pago
 (
 	BI_medio_de_pago_id int not null primary key,
-	BI_medio_de_pago_tipo nvarchar(100),
-	BI_medio_de_pago_banco nvarchar(100),
-	BI_medio_de_pago_marca nvarchar(100),
-
+	BI_medio_de_pago_tipo nvarchar(100)
 )
 
 create table ONELEITO_BI.BI_Dim_categoria
@@ -561,7 +558,7 @@ BEGIN
 	INSERT INTO ONELEITO_BI.BI_Dim_medio_de_pago(BI_medio_de_pago_id,BI_medio_de_pago_tipo)
 
 	SELECT distinct medio_pago_id,medio_pago_tipo
-	FROM ONELEITO.Medio_Pago  --TODO: revisar que en el der original hay banco y marca y en la tabla de oneleito anterior solo tipo y detalle
+	FROM ONELEITO.Medio_Pago
 END
 GO
 
@@ -909,7 +906,35 @@ ORDER BY
 GO
 
 /*Promedio de importe de la cuota en función del rango etareo del cliente.*/
-
-select c.BI_rango_etario_id, AVG(hp.BI_importe_cuota)  from ONELEITO_BI.BI_Hecho_pago hp 
+CREATE VIEW ONELEITO_BI.Vista_11 AS
+select c.BI_rango_etario_id, AVG(hp.BI_importe_cuota) AS PromedioImporteCuota from ONELEITO_BI.BI_Hecho_pago hp 
 join ONELEITO_BI.BI_Dim_cliente c on c.BI_cliente_id = hp.BI_cliente_id
 group by c.BI_rango_etario_id
+GO
+
+/*
+Porcentaje de descuento aplicado por cada medio de pago en función del valor
+de total de pagos sin el descuento, por cuatrimestre. Es decir, total de descuentos
+sobre el total de pagos más el total de descuentos.
+*/
+
+CREATE VIEW PorcentajeDescuentoPorMedioPago AS
+SELECT
+    mp.BI_medio_de_pago_tipo AS MedioDePago,
+    t.BI_cuatrimestre AS Cuatrimestre,
+	100 - ((SUM(tkt.BI_importe)/SUM(tkt.BI_importe/(1-hp.BI_porcentaje_descuento))) * 100 ) AS PorcentajeDescuentoAplicado
+FROM
+    ONELEITO_BI.BI_HECHO_PAGO hp
+JOIN
+    ONELEITO_BI.BI_DIM_TICKET tkt ON tkt.BI_ticket_id = hp.BI_ticket_id
+JOIN
+    ONELEITO_BI.BI_DIM_MEDIO_DE_PAGO mp ON mp.BI_medio_de_pago_id = hp.BI_medio_de_pago_id
+JOIN
+    ONELEITO_BI.BI_DIM_TIEMPO t ON t.BI_tiempo_id = tkt.BI_tiempo_id
+GROUP BY
+    mp.BI_medio_de_pago_tipo,
+    t.BI_cuatrimestre
+ORDER BY
+    t.BI_cuatrimestre,
+    mp.BI_medio_de_pago_tipo;
+GO
