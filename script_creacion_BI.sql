@@ -934,7 +934,4 @@ JOIN
 GROUP BY
     mp.BI_medio_de_pago_tipo,
     t.BI_cuatrimestre
-ORDER BY
-    t.BI_cuatrimestre,
-    mp.BI_medio_de_pago_tipo;
 GO
