@@ -918,7 +918,7 @@ de total de pagos sin el descuento, por cuatrimestre. Es decir, total de descuen
 sobre el total de pagos más el total de descuentos.
 */
 
-CREATE VIEW PorcentajeDescuentoPorMedioPago AS
+CREATE VIEW ONELEITO_BI.Vista_12 AS
 SELECT
     mp.BI_medio_de_pago_tipo AS MedioDePago,
     t.BI_cuatrimestre AS Cuatrimestre,
