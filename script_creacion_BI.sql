@@ -906,3 +906,10 @@ ORDER BY
     t.BI_anio,
     t.BI_mes,
     mp.BI_medio_de_pago_tipo;
+GO
+
+/*Promedio de importe de la cuota en función del rango etareo del cliente.*/
+
+select c.BI_rango_etario_id, AVG(hp.BI_importe_cuota)  from ONELEITO_BI.BI_Hecho_pago hp 
+join ONELEITO_BI.BI_Dim_cliente c on c.BI_cliente_id = hp.BI_cliente_id
+group by c.BI_rango_etario_id
