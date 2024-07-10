@@ -200,7 +200,7 @@ create table ONELEITO_BI.BI_Dim_sucursal
 create table ONELEITO_BI.BI_Dim_Caja
 (
     caja_id int identity (1,1) not null primary key,
-	caja_tipo_caja int
+	caja_tipo_caja nvarchar(100)
 )
 
 create table ONELEITO_BI.BI_Dim_rango_etario
@@ -247,7 +247,7 @@ create table ONELEITO_BI.BI_Hecho_envio
 	envio_sucursal int not null,
 	envio_tiempo int not null,
 	envio_costo decimal(10,0) not null,
-	envio_demorado int not null,
+	envio_demorado bit not null,
 	constraint FK_BI_envio_ubicacion foreign key (envio_ubicacion) references ONELEITO_BI.BI_Dim_ubicacion(ubicacion_id),
 	constraint FK_BI_envio_rango_etario_cliente foreign key (envio_rango_etario_cliente) references ONELEITO_BI.BI_Dim_rango_etario(rango_etario_id),
 	constraint FK_BI_envio_sucursal foreign key (envio_sucursal) references ONELEITO_BI.BI_Dim_sucursal(sucursal_id),
@@ -486,59 +486,100 @@ GO
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Envio
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Hecho_envio(BI_ticket_id,BI_ubicacion_id,BI_cliente_id,BI_envio_hora_estimada_inicio,BI_envio_hora_estimada_fin,BI_envio_recibido,BI_envio_costo)
+	INSERT INTO ONELEITO_BI.BI_Hecho_envio(envio_ubicacion,envio_rango_etario_cliente,envio_sucursal,envio_tiempo,envio_costo,envio_demorado)
 
-	SELECT DISTINCT 
-					envio_ticket as BI_ticket_id,
-					(SELECT BI_ubicacion_id FROM ONELEITO_BI.BI_Dim_cliente WHERE BI_cliente_id=envio_cliente) AS BI_ubicacion_id,
-					envio_cliente AS BI_cliente_id,
-					DATEADD(MINUTE,CAST(envio_hora_inicio* 60 AS INT),envio_fecha_programada),
-					DATEADD(MINUTE,CAST(envio_hora_fin* 60 AS INT),envio_fecha_programada),
-					envio_fecha_hora_entregado,
-					envio_costo
-	FROM ONELEITO.Envio 
-	GROUP BY envio_id,envio_ticket,envio_cliente,envio_hora_inicio,envio_hora_fin,envio_fecha_hora_entregado,envio_costo,envio_fecha_programada
+	SELECT DISTINCT
+	(SELECT biu.ubicacion_id FROM ONELEITO_BI.BI_Dim_ubicacion biu where biu.ubicacion_localidad = l.localidad_nombre and biu.ubicacion_provincia = p.provincia_nombre) ubicacion,
+	ONELEITO_BI.ObtenerRangoEtarioID(cliente_fecha_nacimiento) as rango_etario,
+	(Select bis.sucursal_id from ONELEITO_BI.BI_Dim_sucursal bis where bis.sucursal_id = s.sucursal_id) as sucursal,
+	ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora),month(ti.ticket_fecha_hora)) as tiempo,
+	envio_costo ,
+	CASE WHEN (e.envio_fecha_hora_entregado between DATEADD(MINUTE,CAST(e.envio_hora_inicio* 60 AS INT),envio_fecha_programada) and DATEADD(MINUTE,CAST(e.envio_hora_fin* 60 AS INT),envio_fecha_programada)) THEN 0 ELSE 1 END
+	FROM ONELEITO.Envio e
+	join ONELEITO.Sucursal s on s.sucursal_id = e.envio_sucursal
+	join ONELEITO.Localidad l on l.localidad_id = s.sucursal_localidad
+	join ONELEITO.Provincia p on p.provincia_id = s.sucursal_provincia
+	join ONELEITO.Cliente c on c.cliente_id = e.envio_cliente
+	join ONELEITO.Ticket ti on ti.ticket_id = e.envio_ticket
 END
 GO
 
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Venta
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Hecho_venta(BI_producto_id,BI_ticket_id,BI_promocion_id,BI_importe_producto,BI_cantidad)
+INSERT INTO ONELEITO_BI.BI_Hecho_venta(venta_rango_empleado,venta_rango_cliente,venta_ubicacion,venta_tiempo,venta_sucursal,venta_turno,venta_tipo_caja,
+venta_venta_cantidad,venta_prod_cantidad,venta_monto_ventas,venta_descuento)
 
-	SELECT DISTINCT 
-                    PXT1.producto_id AS BI_producto_id,
-                    PXT1.ticket_id AS BI_ticket_id,
-                    PTP1.promocion_id AS BI_promocion_id,
-                    PXT1.producto_ticket_importe_total AS BI_importe_producto,
-                    PXT1.producto_ticket_cantidad_vendida
-    FROM ONELEITO.Productos_X_Tickets PXT1
-    JOIN ONELEITO.Producto_Ticket_X_Promocion PTP1 ON PXT1.producto_ticket_id=PTP1.producto_ticket_id
-    GROUP BY PXT1.producto_id,PXT1.ticket_id,PTP1.promocion_id,PXT1.producto_ticket_importe_total, PXT1.producto_ticket_cantidad_vendida
+SELECT DISTINCT
+    ONELEITO_BI.ObtenerRangoEtarioID(em.empleado_fecha_nacimiento) as venta_rango_empleado,
+    ONELEITO_BI.ObtenerRangoEtarioID(cli.cliente_fecha_nacimiento) as venta_rango_cliente,
+    (SELECT du.ubicacion_id FROM ONELEITO_BI.BI_Dim_ubicacion du where du.ubicacion_localidad = lo.localidad_nombre and du.ubicacion_provincia = pro.provincia_nombre) as venta_ubicacion,
+    ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora), MONTH(ti.ticket_fecha_hora)) as venta_tiempo,
+    (SELECT dsu.sucursal_id FROM ONELEITO_BI.BI_Dim_sucursal dsu where dsu.sucursal_nombre = su.sucursal_nombre) as venta_sucursal,
+    ONELEITO_BI.ObtenerTurnoID(ti.ticket_fecha_hora) as venta_turno,
+    (SELECT tp.tipo_caja_id FROM ONELEITO_BI.BI_Dim_Caja dtp where dtp.caja_tipo_caja = tp.tipo_caja_nombre) as venta_tipo_caja,
+    SUM(pxt.producto_ticket_cantidad_vendida) as venta_venta_cantidad,
+    COUNT(distinct pxt.producto_ticket_id) as venta_prod_cantidad,
+    ti.ticket_total as venta_monto_ventas,
+    ti.ticket_descuento_medio_pago as venta_descuento
+
+FROM ONELEITO.Ticket ti
+JOIN ONELEITO.Empleado em on em.empleado_id = ti.ticket_empleado
+JOIN ONELEITO.Pago pa on pa.pago_ticket = ti.ticket_id
+JOIN ONELEITO.Detalle_pago dp on dp.detalle_pago_id = pa.pago_detalle
+JOIN ONELEITO.Cliente cli on cli.cliente_id = dp.detalle_pago_cliente
+JOIN ONELEITO.Sucursal su on su.sucursal_id = ti.ticket_sucursal
+JOIN ONELEITO.Provincia pro on pro.provincia_id = su.sucursal_provincia
+JOIN ONELEITO.Localidad lo on lo.localidad_id = su.sucursal_localidad
+JOIN ONELEITO.Caja ca on ca.caja_id = ti.ticket_caja
+JOIN ONELEITO.Tipo_caja tp on tp.tipo_caja_id = ca.caja_tipo_caja
+JOIN ONELEITO.Productos_X_Tickets pxt on pxt.ticket_id = ti.ticket_id
+
+GROUP BY
+    em.empleado_fecha_nacimiento,cli.cliente_fecha_nacimiento, lo.localidad_nombre, pro.provincia_nombre,ti.ticket_fecha_hora,ti.ticket_fecha_hora,su.sucursal_nombre,ti.ticket_fecha_hora,
+    tp.tipo_caja_nombre, tp.tipo_caja_id, ti.ticket_total, ti.ticket_descuento_medio_pago
 END
 GO
 
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Pago
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Hecho_pago(BI_medio_de_pago_id,BI_ticket_id,BI_cliente_id,BI_porcentaje_descuento,BI_cuotas,BI_importe_cuota)
+    INSERT INTO ONELEITO_BI.BI_Hecho_pago(pago_sucursal,pago_rango_etario_cliente,pago_medio_pago,pago_tiempo,pago_total,pago_cuotas,pago_descuento)
 
-	SELECT DISTINCT 
-					pago_medio_pago AS BI_medio_de_pago,
-					pago_ticket AS BI_ticket_id,
-					DP.detalle_pago_cliente AS BI_cliente_id,
-					isnull(AVG(D.descuento_porcentaje), 0) AS BI_porcentaje_descuento,
-					DP.detalle_pago_coutas AS BI_cuotas,
-					(ROUND((pago_importe/DP.detalle_pago_coutas),2)) AS BI_importe_cuota
-	FROM ONELEITO.Pago 
-	LEFT JOIN ONELEITO.Detalle_pago DP ON pago_detalle=DP.detalle_pago_id
-	LEFT JOIN ONELEITO.Descuentos_X_Medio_de_Pago DMP ON DP.detalle_pago_cliente=DMP.descuento_medio_id
-	LEFT JOIN ONELEITO.Descuento D ON DMP.descuento_id=D.descuento_id
-	GROUP BY pago_medio_pago,pago_ticket,DP.detalle_pago_cliente,pago_importe,DP.detalle_pago_coutas
+    SELECT DISTINCT sucursal_nombre, 
+    ONELEITO_BI.ObtenerRangoEtarioID(cliente_fecha_nacimiento) as rango_etario,
+    (SELECT dmdp.medio_de_pago_id FROM ONELEITO_BI.BI_Dim_medio_de_pago dmdp where dmdp.medio_de_pago_tipo = tmp.tipo_medio_pago_nombre and dmdp.medio_de_pago_detalle = mp.medio_pago_descripcion) as medio_de_pago,
+    ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora),month(ti.ticket_fecha_hora)) as tiempo,
+    pa.pago_importe,
+    dp.detalle_pago_coutas,
+    pa.pago_descuento
+    FROM ONELEITO.Pago pa
+    JOIN ONELEITO.Ticket ti on ti.ticket_id = pa.pago_ticket
+    JOIN ONELEITO.Sucursal su on su.sucursal_id = ti.ticket_sucursal
+    JOIN ONELEITO.Detalle_pago dp on dp.detalle_pago_id = pa.pago_detalle
+    JOIN ONELEITO.Cliente cl on cl.cliente_id = dp.detalle_pago_cliente
+    JOIN ONELEITO.Medio_Pago mp on mp.medio_pago_id = pa.pago_medio_pago
+    JOIN ONELEITO.Tipo_Medio_Pago tmp on tmp.tipo_medio_pago_id = mp.medio_pago_tipo
 END
 GO
---TODO AGREGAR HECHO PROMOCION
+CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Promocion
+AS
+BEGIN
+    INSERT INTO ONELEITO_BI.BI_Hecho_promocion(promocion_tiempo,promocion_categoria,promocion_subcategoria,promocion_descuento)
 
+    SELECT DISTINCT ONELEITO_BI.ObtenerTiempoID(YEAR(prom.promocion_fecha_inicio),month(prom.promocion_fecha_inicio)) as tiempo, --TODO: REVISAR SI ES AMBOS TIEMPOS O SOLO INICIO/FIN
+    (SELECT dcat.categoria_id from ONELEITO_BI.BI_Dim_categoria dcat where dcat.categoria_nombre = cat.categoria_nombre) as categoria,
+    (SELECT dsub.subcategoria_id from ONELEITO_BI.BI_Dim_subcategoria dsub where dsub.subcategoria_nombre = sub.subcategoria_nombre) as subcategoria,
+    reg.regla_descuento
+    FROM ONELEITO.Promocion prom
+    JOIN ONELEITO.Productos_X_Promocion pxp on pxp.promocion_id = prom.promocion_id
+    JOIN ONELEITO.Producto prod on prod.producto_id = pxp.producto_id
+    JOIN ONELEITO.Subcategoria sub on sub.subcategoria_id = prod.producto_subcategoria
+    JOIN ONELEITO.Categoria cat on cat.categoria_id = sub.subcategoria_categoria
+    JOIN ONELEITO.Regla reg on reg.regla_id = prom.promocion_regla
+
+END
+GO
 --- EXEC DE PROCEDURE
 exec ONELEITO_BI.BI_Migrar_Dim_Ubicacion
 exec ONELEITO_BI.BI_Migrar_Dim_Sucursal
@@ -552,7 +593,7 @@ exec ONELEITO_BI.BI_Migrar_Dim_Tiempo
 exec ONELEITO_BI.BI_Migrar_Hecho_Envio
 exec ONELEITO_BI.BI_Migrar_Hecho_Venta
 exec ONELEITO_BI.BI_Migrar_Hecho_Pago
-
+exec ONELEITO_BI.BI_Migrar_Hecho_Promocion
 go
 -- Vistas
 
