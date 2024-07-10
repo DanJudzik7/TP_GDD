@@ -8,14 +8,8 @@ DROP TABLE  ONELEITO_BI.BI_Hecho_envio
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Hecho_venta')
 DROP TABLE  ONELEITO_BI.BI_Hecho_venta
 
-IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dim_ticket')
-DROP TABLE  ONELEITO_BI.BI_Dim_ticket
-
-IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dim_cliente')
-DROP TABLE  ONELEITO_BI.BI_Dim_cliente
-
-IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dim_empleado')
-DROP TABLE  ONELEITO_BI.BI_Dim_empleado
+IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Hecho_promocion')
+DROP TABLE  ONELEITO_BI.BI_Hecho_promocion
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dim_turno')
 DROP TABLE  ONELEITO_BI.BI_Dim_turno
@@ -23,20 +17,8 @@ DROP TABLE  ONELEITO_BI.BI_Dim_turno
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dim_rango_etario')
 DROP TABLE  ONELEITO_BI.BI_Dim_rango_etario
 
-IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dim_Empleado')
-DROP TABLE  ONELEITO_BI.BI_Dim_Empleado
-
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dim_Caja')
 DROP TABLE  ONELEITO_BI.BI_Dim_Caja
-
-IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dim_Tipo_Caja')
-DROP TABLE  ONELEITO_BI.BI_Dim_Tipo_Caja
-
-IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dim_producto')
-DROP TABLE  ONELEITO_BI.BI_Dim_producto
-
-IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dim_promocion')
-DROP TABLE  ONELEITO_BI.BI_Dim_promocion
 
 IF EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_Dim_subcategoria')
 DROP TABLE  ONELEITO_BI.BI_Dim_subcategoria
@@ -69,15 +51,6 @@ DROP PROCEDURE  ONELEITO_BI.BI_Migrar_Dim_Categoria
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Dim_Subcategoria')
 DROP PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Subcategoria
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Dim_Promocion')
-DROP PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Promocion
-
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Dim_Producto')
-DROP PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Producto
-
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Dim_Tipo_Caja')
-DROP PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Tipo_Caja
-
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Dim_Caja')
 DROP PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Caja
 
@@ -90,17 +63,8 @@ DROP PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Rango_Etario
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Dim_Turno')
 DROP PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Turno
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Dim_Empleado')
-DROP PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Empleado
-
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Dim_Cliente')
-DROP PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Cliente
-
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Dim_Tiempo')
 DROP PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Tiempo
-
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Dim_Ticket')
-DROP PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Ticket
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Hecho_Envio')
 DROP PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Envio
@@ -110,6 +74,9 @@ DROP PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Venta
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Hecho_Pago')
 DROP PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Pago
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_Migrar_Hecho_Promocion')
+DROP PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Promocion
 
 -- DROP VISTAS BI
 IF EXISTS(SELECT [name] FROM sys.views WHERE [name] = 'Vista_1')
@@ -192,173 +159,129 @@ go
 
 create table ONELEITO_BI.BI_Dim_tiempo
 (
-	BI_tiempo_id int identity (1,1) not null primary key,
-	BI_anio int,
-	BI_cuatrimestre int,
-	BI_mes int
+	tiempo_id int identity (1,1) not null primary key,
+	tiempo_anio int,
+	tiempo_cuatrimestre int,
+	tiempo_mes int
 )
 
 create table ONELEITO_BI.BI_Dim_ubicacion
 (
-    BI_ubicacion_id int identity (1,1) not null primary key,
-    BI_ubicacion_provincia nvarchar(100),
-    BI_ubicacion_localidad nvarchar(100),
-    BI_ubicacion_direccion nvarchar(100)
+    ubicacion_id int identity (1,1) not null primary key,
+    ubicacion_provincia nvarchar(100),
+    ubicacion_localidad nvarchar(100)
 )
 
 create table ONELEITO_BI.BI_Dim_medio_de_pago
 (
-	BI_medio_de_pago_id int not null primary key,
-	BI_medio_de_pago_tipo nvarchar(100)
+	medio_de_pago_id int not null primary key,
+	medio_de_pago_tipo nvarchar(100),
+	medio_de_pago_detalle nvarchar(100)
 )
 
 create table ONELEITO_BI.BI_Dim_categoria
 (
-	BI_categoria_id int identity (1,1) not null primary key,
-	BI_categoria_nombre nvarchar(100)
+	categoria_id int identity (1,1) not null primary key,
+	categoria_nombre nvarchar(100)
 )
 
 create table ONELEITO_BI.BI_Dim_subcategoria
 (
-	BI_subcategoria_id int identity (1,1) not null primary key,
-	BI_subcategoria_nombre nvarchar(100),
-	BI_categoria_id int
-	constraint FK_BI_categoria_id foreign key (BI_categoria_id) references ONELEITO_BI.BI_Dim_categoria(BI_categoria_id),
-)
-
-create table ONELEITO_BI.BI_Dim_promocion
-(
-	BI_promocion_id int identity (1,1) not null primary key,
-	BI_promocion_original_id int not null,
-    BI_descripcion nvarchar(100),
-	BI_categoria int,
-	BI_regla_descuento decimal(10,2),
-	constraint FK_BI_categoria foreign key (BI_categoria) references ONELEITO_BI.BI_Dim_categoria(BI_categoria_id)
-)
-
-create table ONELEITO_BI.BI_Dim_producto
-(
-	BI_producto_id int  not null primary key,
-	BI_subcategoria_id int,
-	BI_precio_unitario DECIMAL(10,2),
-	constraint FK_BI_subcategoria_id foreign key (BI_subcategoria_id) references ONELEITO_BI.BI_Dim_subcategoria(BI_subcategoria_id)
-)
-
-create table ONELEITO_BI.BI_Dim_Tipo_Caja
-(
-    BI_tipo_caja_id int identity (1,1) not null primary key,
-	BI_tipo_caja_nombre nvarchar(100)
+	subcategoria_id int identity (1,1) not null primary key,
+	subcategoria_nombre nvarchar(100)	
 )
 
 create table ONELEITO_BI.BI_Dim_sucursal
 (
-	BI_sucursal_id int not null primary key,
-	BI_ubicacion_id int,
-    constraint FK_BI_ubicacion_id foreign key (BI_sucursal_id) references ONELEITO_BI.BI_Dim_ubicacion(BI_ubicacion_id),
-	BI_nombre nvarchar(100)
+	sucursal_id int not null primary key,
+	sucursal_nombre nvarchar(100)
 )
 
 create table ONELEITO_BI.BI_Dim_Caja
 (
-    BI_caja_id int identity (1,1) not null primary key,
-	BI_caja_numero int,
-	BI_tipo_caja int,
-	BI_caja_scursal_id int,
-    constraint FK_BI_tipo_caja foreign key (BI_tipo_caja) references ONELEITO_BI.BI_Dim_Tipo_Caja(BI_tipo_caja_id),
-	constraint FK_BI_caja_sucursal_id foreign key (BI_caja_scursal_id) references ONELEITO_BI.BI_Dim_sucursal(BI_sucursal_id)
+    caja_id int identity (1,1) not null primary key,
+	caja_tipo_caja int
 )
 
 create table ONELEITO_BI.BI_Dim_rango_etario
 (
-	BI_rango_etario_id int identity (1,1) not null primary key,
-    BI_rango_etario nvarchar(100)
+	rango_etario_id int identity (1,1) not null primary key,
+    rango_etario_detalle nvarchar(100)
 )
 
 create table ONELEITO_BI.BI_Dim_turno
 (
-    BI_turno_id int identity (1,1) not null primary key,
-    BI_turno_inicio int,
-    BI_turno_fin int
-)
-
-create table ONELEITO_BI.BI_Dim_empleado
-(
-	BI_empleado_id int not null primary key,
-    BI_empleado_nombre nvarchar(100),
-	BI_empleado_rango_etario_id int,
-	BI_empleado_sucursal_id int,
-    constraint FK_BI_empleado_rango_etario_id foreign key (BI_empleado_rango_etario_id) references ONELEITO_BI.BI_Dim_rango_etario(BI_rango_etario_id),
-    constraint FK_BI_empleado_sucursal_id foreign key (BI_empleado_sucursal_id) references ONELEITO_BI.BI_Dim_sucursal(BI_sucursal_id),
-)
-
-create table ONELEITO_BI.BI_Dim_cliente
-(
-	BI_cliente_id int not null primary key,
-	BI_ubicacion_id int,
-    constraint FK_BI_cliente_ubicacion_id foreign key (BI_ubicacion_id) references ONELEITO_BI.BI_Dim_ubicacion(BI_ubicacion_id),
-	BI_rango_etario_id int,
-    constraint FK_BI_cliente_rango_etario_id foreign key (BI_rango_etario_id) references ONELEITO_BI.BI_Dim_Rango_etario(BI_Rango_etario_id),
-	BI_documento nvarchar(100),
-	BI_razon_social nvarchar(255),
-)
-
-create table ONELEITO_BI.BI_Dim_ticket
-(
-	BI_ticket_id int not null primary key,
-	BI_empleado_id int,
-	BI_tiempo_id int,
-	BI_sucursal_id int,
-	BI_turno_id int,
-	BI_caja_id int,
-    constraint FK_BI_empleado_id foreign key (BI_empleado_id) references ONELEITO_BI.BI_Dim_empleado(BI_empleado_id),
-    constraint FK_BI_tiempo_id foreign key (BI_tiempo_id) references ONELEITO_BI.BI_Dim_tiempo(BI_tiempo_id),
-    constraint FK_BI_sucursal_id foreign key (BI_sucursal_id) references ONELEITO_BI.BI_Dim_sucursal(BI_sucursal_id),
-    constraint FK_BI_turno_id foreign key (BI_turno_id) references ONELEITO_BI.BI_Dim_turno(BI_turno_id),
-    constraint FK_BI_caja_id foreign key (BI_caja_id) references ONELEITO_BI.BI_Dim_Caja(BI_caja_id),
-    BI_importe numeric(18,2),
+	turno_id int identity (1,1) not null primary key,
+	turno_inicio int,
+	turno_fin int
 )
 
 create table ONELEITO_BI.BI_Hecho_venta
 (
-	BI_venta_id int identity (1,1) not null primary key,
-	BI_producto_id int,
-	BI_ticket_id int,
-	BI_promocion_id int,
-    constraint FK_BI_producto_id foreign key (BI_producto_id) references ONELEITO_BI.BI_Dim_producto(BI_producto_id),
-    constraint FK_BI_ticket_id foreign key (BI_ticket_id) references ONELEITO_BI.BI_Dim_ticket(BI_ticket_id),
-    constraint FK_BI_promocion_id foreign key (BI_promocion_id) references ONELEITO_BI.BI_Dim_promocion(BI_promocion_id),
-    BI_importe_producto numeric(18,2),
-	BI_cantidad int
-)
+	venta_id int identity (1,1) not null primary key,
+	venta_rango_empleado int NOT NULL,
+	venta_rango_cliente int NOT NULL,
+	venta_ubicacion int not null,
+	venta_tiempo int not null,
+	venta_sucursal int not null,
+	venta_turno int not null,
+	venta_tipo_caja int not null,
+    venta_venta_cantidad decimal(18,0) not null,
+    venta_prod_cantidad decimal(18,0) not null,
+    venta_monto_ventas decimal(18,0) not null,
+    venta_descuento decimal(10,2) not null,
+	constraint FK_BI_venta_rango_etario_empleado foreign key (venta_rango_empleado) references ONELEITO_BI.BI_Dim_rango_etario(rango_etario_id),
+	constraint FK_BI_venta_rango_etario_cliente foreign key (venta_rango_cliente) references ONELEITO_BI.BI_Dim_rango_etario(rango_etario_id),
+	constraint FK_BI_ubicacion foreign key (venta_ubicacion) references ONELEITO_BI.BI_Dim_ubicacion(ubicacion_id),
+	constraint FK_BI_tiempo foreign key (venta_tiempo) references ONELEITO_BI.BI_Dim_tiempo(tiempo_id),
+	constraint FK_BI_sucursal foreign key (venta_sucursal) references ONELEITO_BI.BI_Dim_sucursal(sucursal_id),
+	constraint FK_BI_turno foreign key (venta_turno) references ONELEITO_BI.BI_Dim_turno(turno_id)
+);
+
 
 create table ONELEITO_BI.BI_Hecho_envio
 (
-	BI_envio_id int identity (1,1) not null primary key,
-	BI_ticket_id int,
-	BI_ubicacion_id int,
-	BI_cliente_id int,
-	BI_envio_hora_estimada_inicio DATETIME,
-	BI_envio_hora_estimada_fin DATETIME,
-	BI_envio_recibido datetime,
-	BI_envio_costo decimal (10,2)
-    constraint FK_BI_envio_ticket_id foreign key (BI_ticket_id) references ONELEITO_BI.BI_Dim_ticket(BI_ticket_id),
-    constraint FK_BI_envio_ubicacion_id foreign key (BI_ubicacion_id) references ONELEITO_BI.BI_Dim_ubicacion(BI_ubicacion_id),
-    constraint FK_BI_envio_cliente_id foreign key (BI_cliente_id) references ONELEITO_BI.BI_Dim_cliente(BI_cliente_id),
+	envio_id int identity (1,1) not null primary key,
+	envio_ubicacion int not null,
+	envio_rango_etario_cliente int not null,
+	envio_sucursal int not null,
+	envio_tiempo int not null,
+	envio_costo decimal(10,0) not null,
+	envio_demorado int not null,
+	constraint FK_BI_envio_ubicacion foreign key (envio_ubicacion) references ONELEITO_BI.BI_Dim_ubicacion(ubicacion_id),
+	constraint FK_BI_envio_rango_etario_cliente foreign key (envio_rango_etario_cliente) references ONELEITO_BI.BI_Dim_rango_etario(rango_etario_id),
+	constraint FK_BI_envio_sucursal foreign key (envio_sucursal) references ONELEITO_BI.BI_Dim_sucursal(sucursal_id),
+	constraint FK_BI_envio_tiempo foreign key (envio_tiempo) references ONELEITO_BI.BI_Dim_tiempo(tiempo_id)
 )
+
 
 create table ONELEITO_BI.BI_Hecho_pago
 (
-	BI_pago_id int identity (1,1) not null primary key,
-	BI_medio_de_pago_id int,
-	BI_ticket_id int,
-	BI_cliente_id int,
-	BI_porcentaje_descuento numeric(18,2),
-	BI_cuotas int,
-	BI_importe_cuota numeric(18,2),
-    constraint FK_BI_medio_de_pago_id foreign key (BI_medio_de_pago_id) references ONELEITO_BI.BI_Dim_medio_de_pago(BI_medio_de_pago_id),
-    constraint FK_BI_pago_ticket_id foreign key (BI_ticket_id) references ONELEITO_BI.BI_Dim_ticket(BI_ticket_id),
-    constraint FK_BI_pago_cliente_id foreign key (BI_cliente_id) references ONELEITO_BI.BI_Dim_cliente(BI_cliente_id),
+	pago_id int identity (1,1) not null primary key,
+	pago_sucursal int not null,
+	pago_rango_etario_cliente int not null,
+	pago_medio_pago int not null,
+	pago_tiempo int not null,
+	pago_total decimal(10,0) not null,
+	pago_cuotas decimal(10,0) not null,
+	pago_descuento decimal(10,0) not null,
+	constraint FK_BI_pago_sucursal foreign key (pago_sucursal) references ONELEITO_BI.BI_Dim_sucursal(sucursal_id),
+	constraint FK_BI_pago_rango_etario_cliente foreign key (pago_rango_etario_cliente) references ONELEITO_BI.BI_Dim_rango_etario(rango_etario_id),
+	constraint FK_BI_pago_medio_pago foreign key (pago_medio_pago) references ONELEITO_BI.BI_Dim_medio_de_pago(medio_de_pago_id),
+	constraint FK_BI_pago_tiempo foreign key (pago_tiempo) references ONELEITO_BI.BI_Dim_tiempo(tiempo_id)
 )
+
+create table ONELEITO_BI.BI_Hecho_promocion
+(
+    promocion_id int not null primary key,
+    promocion_tiempo int not null,
+    promocion_subcategoria int not null,
+    promocion_categoria int not null,
+    promocion_descuento decimal(10,0) not null,
+    constraint FK_promocion_tiempo foreign key (promocion_tiempo) references ONELEITO_BI.BI_Dim_tiempo(tiempo_id),
+    constraint FK_promocion_subcategoria foreign key (promocion_subcategoria) references ONELEITO_BI.BI_Dim_subcategoria(subcategoria_id),
+    constraint FK_promocion_categoria foreign key (promocion_categoria) references ONELEITO_BI.BI_Dim_categoria(categoria_id)
+);
 
 print('tablas creadas')
 go
@@ -390,9 +313,9 @@ BEGIN
         WHEN @Edad > 50 THEN '> 50'
     END
 
-    SELECT @RangoEtario_ID = BI_rango_etario_id
+    SELECT @RangoEtario_ID = rango_etario_id
     FROM ONELEITO_BI.BI_Dim_Rango_Etario
-    WHERE @RangoEtario = BI_rango_etario
+    WHERE @RangoEtario = rango_etario_detalle
 
     RETURN @RangoEtario_ID
 END
@@ -407,12 +330,12 @@ AS
 BEGIN
     DECLARE @bi_tiempo_id INT
 
-    SELECT @bi_tiempo_id = BI_tiempo_id
+    SELECT @bi_tiempo_id = tiempo_id
     FROM ONELEITO_BI.BI_Dim_Tiempo
     WHERE
-        BI_anio = @anio AND
-        BI_mes = @mes AND
-        BI_cuatrimestre = (
+        tiempo_anio = @anio AND
+        tiempo_mes = @mes AND
+        tiempo_cuatrimestre = (
             CASE
                 WHEN @mes >= 1 AND @mes <= 4 THEN 1
                 WHEN @mes >= 5 AND @mes <= 8 THEN 2
@@ -436,9 +359,9 @@ begin
 
 	SET @HORA = DATEPART(HOUR, @fecha)
 
-	 SELECT @BI_turno_id = BI_turno_id
+	 SELECT @BI_turno_id = turno_id
 	 from BI_Dim_turno
-	 where @HORA between BI_turno_inicio and BI_turno_fin
+	 where @HORA between turno_inicio and turno_fin
 
 	 return @BI_turno_id
 end
@@ -456,30 +379,26 @@ go
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Ubicacion
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Dim_ubicacion(BI_ubicacion_provincia, BI_ubicacion_localidad, BI_ubicacion_direccion)
+	INSERT INTO ONELEITO_BI.BI_Dim_ubicacion(ubicacion_provincia, ubicacion_localidad) --TODO: REVISAR
 
-	SELECT distinct provincia_nombre, localidad_nombre, sucursal_direccion
+	SELECT distinct provincia_nombre, localidad_nombre
 	FROM ONELEITO.sucursal
 	JOIN ONELEITO.provincia on sucursal_provincia = provincia_id
-	JOIN ONELEITO.localidad on sucursal_localidad = localidad_id
-
+	JOIN ONELEITO.localidad on sucursal_localidad = localidad_id 
 	UNION
-
-	SELECT distinct provincia_nombre, localidad_nombre, cliente_domicilio
+	SELECT distinct provincia_nombre, localidad_nombre
 	FROM ONELEITO.Cliente
 	JOIN ONELEITO.Provincia on cliente_provincia = provincia_id
 	JOIN ONELEITO.Localidad on cliente_localidad = localidad_id
-END
+	END
 GO
 
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Sucursal
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Dim_sucursal(BI_sucursal_id, BI_nombre, BI_ubicacion_id)
+	INSERT INTO ONELEITO_BI.BI_Dim_sucursal(sucursal_id, sucursal_nombre)
 
-	SELECT distinct sucursal_id,sucursal_nombre, (SELECT BI_ubicacion_id FROM ONELEITO_BI.BI_Dim_ubicacion where BI_ubicacion_localidad = localidad_nombre and BI_ubicacion_provincia = provincia_nombre and BI_ubicacion_direccion = sucursal_direccion)
-	FROM ONELEITO.Sucursal JOIN ONELEITO.Localidad on sucursal_localidad = localidad_id
-	JOIN ONELEITO.Provincia on sucursal_provincia  = provincia_id
+	SELECT distinct sucursal_id,sucursal_nombre from ONELEITO.Sucursal
 
 END
 GO
@@ -487,7 +406,7 @@ GO
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Categoria
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Dim_categoria(BI_categoria_nombre)
+	INSERT INTO ONELEITO_BI.BI_Dim_categoria(categoria_nombre)
 
 	SELECT distinct categoria_nombre
 	FROM ONELEITO.Categoria
@@ -498,74 +417,38 @@ GO
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Subcategoria
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Dim_subcategoria(BI_subcategoria_nombre,BI_categoria_id)
+	INSERT INTO ONELEITO_BI.BI_Dim_subcategoria(subcategoria_nombre)
 
-	SELECT distinct subcategoria_nombre,subcategoria_categoria
+	SELECT distinct subcategoria_nombre
 	FROM ONELEITO.Subcategoria
-	JOIN ONELEITO.Categoria ON subcategoria_categoria = categoria_id
-	
 END 
-GO
-
-CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Promocion
-AS
-begin
-    insert into ONELEITO_BI.BI_Dim_promocion(BI_promocion_original_id, BI_descripcion,BI_categoria,BI_regla_descuento)
-
-	select distinct Promocion.promocion_id, promocion_descripcion, Categoria.categoria_id, Regla.regla_descuento_aplicable
-	from ONELEITO.Promocion
-	join ONELEITO.Regla on ONELEITO.Promocion.promocion_regla = ONELEITO.Regla.regla_id
-	join ONELEITO.Producto_Ticket_X_Promocion on ONELEITO.Promocion.promocion_id = ONELEITO.Producto_Ticket_X_Promocion.promocion_id
-	join ONELEITO.Productos_X_Tickets on ONELEITO.Producto_Ticket_X_Promocion.producto_ticket_id = ONELEITO.Productos_X_Tickets.producto_ticket_id
-	join ONELEITO.Producto on ONELEITO.Productos_X_Tickets.producto_id = ONELEITO.Producto.producto_id
-	join ONELEITO.Subcategoria on ONELEITO.Producto.producto_subcategoria = ONELEITO.Subcategoria.subcategoria_id
-	join ONELEITO.Categoria on ONELEITO.Subcategoria.subcategoria_categoria = ONELEITO.Categoria.categoria_id
-END
-GO
-
-CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Producto
-AS
-BEGIN
-	insert into ONELEITO_BI.BI_Dim_producto(BI_producto_id,BI_subcategoria_id,BI_precio_unitario)
-
-	SELECT distinct producto_id, producto_subcategoria, producto_precio_unitario
-	from ONELEITO.Producto
-END
-GO
-
-CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Tipo_Caja
-AS
-BEGIN
-	INSERT INTO ONELEITO_BI.BI_Dim_Tipo_Caja(BI_tipo_caja_nombre)
-	SELECT distinct tipo_caja_nombre
-	from ONELEITO.Tipo_caja
-END
 GO
 
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Caja
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Dim_Caja(BI_caja_numero, BI_tipo_caja, BI_caja_scursal_id)
+	INSERT INTO ONELEITO_BI.BI_Dim_Caja(caja_tipo_caja)
 
-	SELECT distinct caja_numero, caja_tipo_caja, caja_sucursal
-	FROM ONELEITO.Caja
+	SELECT distinct tipo_caja_nombre
+	FROM ONELEITO.Tipo_caja
 END
 GO
 
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Medio_de_pago
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Dim_medio_de_pago(BI_medio_de_pago_id,BI_medio_de_pago_tipo)
+	INSERT INTO ONELEITO_BI.BI_Dim_medio_de_pago(medio_de_pago_id,medio_de_pago_tipo,medio_de_pago_detalle)
 
-	SELECT distinct medio_pago_id,medio_pago_tipo
-	FROM ONELEITO.Medio_Pago
+	SELECT distinct medio_pago_id, tmp.tipo_medio_pago_nombre, mp.medio_pago_descripcion
+	FROM ONELEITO.Medio_Pago mp
+	join ONELEITO.Tipo_Medio_Pago tmp on tmp.tipo_medio_pago_id = mp.medio_pago_tipo
 END
 GO
 
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Rango_Etario
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Dim_Rango_Etario(BI_rango_etario)
+	INSERT INTO ONELEITO_BI.BI_Dim_Rango_Etario(rango_etario_detalle)
 	VALUES ('< 25'),
 	       ('25 - 35'),
 	       ('35 - 50'),
@@ -577,49 +460,15 @@ GO
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Turno
 AS
 BEGIN
-    INSERT INTO ONELEITO_BI.BI_Dim_turno(BI_turno_inicio, BI_turno_fin)
+    INSERT INTO ONELEITO_BI.BI_Dim_turno(turno_inicio, turno_fin)
     VALUES (0, 8), (8, 12), (12, 16), (16, 20), (20, 24)
 END
 GO
 
-
-CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Empleado
-AS
-BEGIN
-		
-	insert into ONELEITO_BI.BI_Dim_Empleado(BI_empleado_id,BI_empleado_rango_etario_id, BI_empleado_sucursal_id, BI_Empleado_nombre)
-
-	SELECT distinct empleado_id,
-                    ONELEITO_BI.ObtenerRangoEtarioID(empleado_fecha_nacimiento),
-					empleado_sucursal,
-					empleado_nombre
-	from ONELEITO.Empleado
-	
-END 
-GO
-
-CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Cliente
-AS
-BEGIN
-	INSERT INTO ONELEITO_BI.BI_Dim_cliente(BI_cliente_id, BI_rango_etario_id,BI_documento,BI_razon_social,BI_ubicacion_id)
-
-	SELECT DISTINCT cliente_id,
-                    ONELEITO_BI.ObtenerRangoEtarioID(cliente_fecha_nacimiento),
-					cliente_dni,
-					cliente_nombre,
-					(SELECT BI_ubicacion_id FROM ONELEITO_BI.BI_Dim_ubicacion where BI_ubicacion_direccion = cliente_domicilio and BI_ubicacion_localidad = localidad_nombre and BI_ubicacion_provincia = provincia_nombre)
-	FROM ONELEITO.Cliente
-	JOIN ONELEITO.Provincia on cliente_provincia = provincia_id
-	JOIN ONELEITO.Localidad on cliente_localidad = localidad_id
-	 
-END
-GO
-
-
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Tiempo
 AS
 BEGIN
-	INSERT INTO ONELEITO_BI.BI_Dim_tiempo(BI_anio,BI_cuatrimestre,BI_mes)
+	INSERT INTO ONELEITO_BI.BI_Dim_tiempo(tiempo_anio,tiempo_cuatrimestre,tiempo_mes)
 
 	SELECT DISTINCT YEAR(ticket_fecha_hora),
 					CASE
@@ -630,26 +479,6 @@ BEGIN
 					MONTH(ticket_fecha_hora)
 
 	FROM ONELEITO.Ticket 
-END
-GO
-
-
-CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Dim_Ticket
-AS
-BEGIN
-	INSERT INTO ONELEITO_BI.BI_Dim_ticket(BI_ticket_id,BI_caja_id,BI_empleado_id,BI_importe,BI_sucursal_id,BI_tiempo_id,BI_turno_id)
-
-	SELECT DISTINCT ticket_id,
-                    (SELECT BI_caja_id FROM ONELEITO_BI.BI_Dim_Caja where BI_caja_numero = caja_numero and BI_caja_scursal_id = caja_sucursal) as caja,
-					(SELECT BI_empleado_id FROM ONELEITO_BI.BI_Dim_empleado where BI_empleado_nombre = empleado_nombre) as emp,
-					ticket_total,
-					(SELECT BI_Sucursal_id from ONELEITO_BI.BI_Dim_sucursal where BI_nombre = sucursal_nombre) as suc,
-					ONELEITO_BI.ObtenerTiempoID(year(ticket_fecha_hora), month(ticket_fecha_hora)) as tiempo,
-					ONELEITO_BI.ObtenerTurnoID(ticket_fecha_hora) as turno
-	FROM ONELEITO.Ticket 
-	join ONELEITO.Caja on ticket_caja = caja_id
-	join ONELEITO.Empleado ON ticket_empleado = empleado_id
-	join ONELEITO.Sucursal ON ticket_sucursal = sucursal_id
 END
 GO
 
@@ -708,24 +537,18 @@ BEGIN
 	GROUP BY pago_medio_pago,pago_ticket,DP.detalle_pago_cliente,pago_importe,DP.detalle_pago_coutas
 END
 GO
-
+--TODO AGREGAR HECHO PROMOCION
 
 --- EXEC DE PROCEDURE
 exec ONELEITO_BI.BI_Migrar_Dim_Ubicacion
 exec ONELEITO_BI.BI_Migrar_Dim_Sucursal
 exec ONELEITO_BI.BI_Migrar_Dim_Categoria
 exec ONELEITO_BI.BI_Migrar_Dim_Subcategoria
-exec ONELEITO_BI.BI_Migrar_Dim_Promocion
-exec ONELEITO_BI.BI_Migrar_Dim_Producto
-exec ONELEITO_BI.BI_Migrar_Dim_Tipo_Caja
 exec ONELEITO_BI.BI_Migrar_Dim_Caja
 exec ONELEITO_BI.BI_Migrar_Dim_Medio_de_pago
 exec ONELEITO_BI.BI_Migrar_Dim_Rango_Etario
 exec ONELEITO_BI.BI_Migrar_Dim_Turno
-exec ONELEITO_BI.BI_Migrar_Dim_Empleado
-exec ONELEITO_BI.BI_Migrar_Dim_Cliente
 exec ONELEITO_BI.BI_Migrar_Dim_Tiempo
-exec ONELEITO_BI.BI_Migrar_Dim_Ticket
 exec ONELEITO_BI.BI_Migrar_Hecho_Envio
 exec ONELEITO_BI.BI_Migrar_Hecho_Venta
 exec ONELEITO_BI.BI_Migrar_Hecho_Pago
