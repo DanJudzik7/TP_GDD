@@ -273,7 +273,7 @@ create table ONELEITO_BI.BI_Hecho_pago
 
 create table ONELEITO_BI.BI_Hecho_promocion
 (
-    promocion_id int not null primary key,
+    promocion_id int identity (1,1) not null primary key,
     promocion_tiempo int not null,
     promocion_subcategoria int not null,
     promocion_categoria int not null,
@@ -546,7 +546,7 @@ AS
 BEGIN
     INSERT INTO ONELEITO_BI.BI_Hecho_pago(pago_sucursal,pago_rango_etario_cliente,pago_medio_pago,pago_tiempo,pago_total,pago_cuotas,pago_descuento)
 
-    SELECT DISTINCT sucursal_nombre, 
+    SELECT DISTINCT sucursal_id, 
     ONELEITO_BI.ObtenerRangoEtarioID(cliente_fecha_nacimiento) as rango_etario,
     (SELECT dmdp.medio_de_pago_id FROM ONELEITO_BI.BI_Dim_medio_de_pago dmdp where dmdp.medio_de_pago_tipo = tmp.tipo_medio_pago_nombre and dmdp.medio_de_pago_detalle = mp.medio_pago_descripcion) as medio_de_pago,
     ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora),month(ti.ticket_fecha_hora)) as tiempo,
@@ -603,12 +603,11 @@ ventas sobre el total de las mismas.
 */
 
 CREATE VIEW ONELEITO_BI.Vista_1 AS
-SELECT U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes,AVG(hp.pago_total) as 'Promedio mensual por localidad'
+SELECT U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes,SUM(hv.venta_monto_ventas)/hv.venta_venta_cantidad as 'Promedio mensual por localidad'
 FROM ONELEITO_BI.BI_Hecho_venta hv
-JOIN ONELEITO_BI.BI_Hecho_pago hp on (hv.venta_sucursal = hp.pago_sucursal + hv.pago_rango_etario_cliente = hp.venta_rango_cliente + hv.venta_tiempo = hp.pago_tiempo)
 JOIN ONELEITO_BI.BI_Dim_tiempo DT ON hv.venta_tiempo = DT.tiempo_id
 JOIN ONELEITO_BI.BI_Dim_ubicacion U on hv.venta_ubicacion = U.ubicacion_id
-group by U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes
+group by U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes,hv.venta_venta_cantidad
 
 
 go
