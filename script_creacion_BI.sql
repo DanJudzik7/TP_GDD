@@ -603,13 +603,13 @@ ventas sobre el total de las mismas.
 */
 
 CREATE VIEW ONELEITO_BI.Vista_1 AS
-SELECT U.BI_ubicacion_localidad,DT.BI_anio, DT.BI_mes,AVG(hv.BI_importe_producto) as 'Promedio mensual por localidad'
+SELECT U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes,AVG(hp.pago_total) as 'Promedio mensual por localidad'
 FROM ONELEITO_BI.BI_Hecho_venta hv
-JOIN ONELEITO_BI.BI_Dim_ticket t on hv.BI_ticket_id = t.BI_ticket_id
-JOIN ONELEITO_BI.BI_Dim_tiempo DT ON t.BI_tiempo_id = DT.BI_tiempo_id
-JOIN ONELEITO_BI.BI_Dim_sucursal s on s.BI_sucursal_id = t.BI_sucursal_id
-JOIN ONELEITO_BI.BI_Dim_ubicacion U on s.BI_ubicacion_id = U.BI_ubicacion_id
-group by U.BI_ubicacion_localidad,DT.BI_anio, DT.BI_mes
+JOIN ONELEITO_BI.BI_Hecho_pago hp on (hv.venta_sucursal = hp.pago_sucursal + hv.pago_rango_etario_cliente = hp.venta_rango_cliente + hv.venta_tiempo = hp.pago_tiempo)
+JOIN ONELEITO_BI.BI_Dim_tiempo DT ON hv.venta_tiempo = DT.tiempo_id
+JOIN ONELEITO_BI.BI_Dim_ubicacion U on hv.venta_ubicacion = U.ubicacion_id
+group by U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes
+
 
 go
 /*
@@ -619,15 +619,14 @@ obtiene sumando la cantidad de artículos de todos los tickets correspondientes
 sobre la cantidad de tickets. Si un producto tiene más de una unidad en un ticket,
 para el indicador se consideran todas las unidades.
 */
-CREATE VIEW ONELEITO_BI.Vista_2 AS
-SELECT tmp.BI_cuatrimestre, tmp.BI_anio,trn.BI_turno_inicio,trn.BI_turno_fin,
-cast(COUNT(hv.BI_producto_id) as float) / cast(COUNT(DISTINCT hv.BI_ticket_id) as float) as CantidadUnidadesPromedio
+
+CREATE VIEW ONELEITO_BI.VISTA_2 AS
+SELECT tmp.tiempo_cuatrimestre, tmp.tiempo_anio,trn.turno_inicio,trn.turno_fin,
+cast(SUM(hv.venta_prod_cantidad) as float) / cast(COUNT(DISTINCT hv.venta_rango_empleado + hv.venta_rango_cliente + hv.venta_ubicacion + hv.venta_tiempo + hv.venta_sucursal + hv.venta_turno + hv.venta_tipo_caja) as float) as CantidadUnidadesPromedio
 FROM ONELEITO_BI.BI_Hecho_venta hv
-JOIN ONELEITO_BI.BI_Dim_ticket tkt on tkt.BI_ticket_id = hv.BI_ticket_id 
-JOIN ONELEITO_BI.BI_Dim_tiempo tmp on tmp.BI_tiempo_id = tkt.BI_tiempo_id
-JOIN ONELEITO_BI.BI_Dim_turno trn on trn.BI_turno_id = tkt.BI_turno_id
-join ONELEITO_BI.BI_Dim_producto pm on pm.BI_producto_id = hv.BI_producto_id
-group by tmp.BI_cuatrimestre, tmp.BI_anio,trn.BI_turno_inicio,trn.BI_turno_fin
+JOIN ONELEITO_BI.BI_Dim_tiempo tmp on tmp.tiempo_id = hv.venta_tiempo
+JOIN ONELEITO_BI.BI_Dim_turno trn on trn.turno_id = hv.venta_turno
+GROUP BY tmp.tiempo_cuatrimestre, tmp.tiempo_anio,trn.turno_inicio,trn.turno_fin
 
 GO
 /* 3. Porcentaje anual de ventas registradas por rango etario del empleado según el
@@ -651,36 +650,41 @@ go
 -- 4. Cantidad de ventas registradas por turno para cada localidad según el mes de cada año
 CREATE VIEW ONELEITO_BI.Vista_4
 AS
-select count(ONELEITO_BI.BI_Hecho_venta.BI_venta_id) as cantidad, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes, BI_Dim_turno.BI_turno_inicio, BI_Dim_turno.BI_turno_fin
-from ONELEITO_BI.BI_Hecho_venta
-join ONELEITO_BI.BI_Dim_ticket on BI_Hecho_venta.BI_ticket_id = BI_Dim_ticket.BI_ticket_id
-join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_tiempo_id
-join ONELEITO_BI.BI_Dim_turno on BI_Dim_ticket.BI_turno_id = BI_Dim_turno.BI_turno_id
-group by BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes, BI_Dim_turno.BI_turno_inicio, BI_Dim_turno.BI_turno_fin
+select count(hv.venta_rango_empleado + hv.venta_rango_cliente + hv.venta_ubicacion + hv.venta_tiempo + hv.venta_sucursal + hv.venta_turno + hv.venta_tipo_caja) as cantidad, temp.tiempo_anio, temp.tiempo_mes, tur.turno_inicio, tur.turno_fin
+from ONELEITO_BI.BI_Hecho_venta hv
+join ONELEITO_BI.BI_Dim_tiempo temp on temp.tiempo_id = hv.venta_tiempo
+join ONELEITO_BI.BI_Dim_turno tur on tur.turno_id = hv.venta_turno
+group by temp.tiempo_anio, temp.tiempo_mes, tur.turno_inicio, tur.turno_fin
 GO
 
 -- 5. Porcentaje de descuento aplicados en función del total de los tickets según el mes de cada año.
 create view ONELEITO_BI.Vista_5
 as
-select avg(BI_porcentaje_descuento) as porcentaje_descuento, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes
-from ONELEITO_BI.BI_Hecho_venta
-join ONELEITO_BI.BI_Dim_ticket on BI_Hecho_venta.BI_ticket_id = BI_Dim_ticket.BI_ticket_id
-join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_tiempo_id
-join ONELEITO_BI.BI_Hecho_pago on BI_Dim_ticket.BI_ticket_id = BI_Hecho_pago.BI_ticket_id
-group by BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_mes
+select (1-(avg(hp.pago_total)/((avg(hp.pago_total))+avg(hp.pago_descuento)))) as porcentaje_descuento_promedio,
+	temp.tiempo_anio, temp.tiempo_mes
+from ONELEITO_BI.BI_Hecho_pago hp
+join ONELEITO_BI.BI_Dim_tiempo temp on temp.tiempo_id = hp.pago_tiempo
+group by temp.tiempo_anio, temp.tiempo_mes
 GO
 
 -- 6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
 create view ONELEITO_BI.Vista_6
 as
-select top 3 BI_Dim_categoria.BI_categoria_nombre, sum(BI_regla_descuento) as promedio_descuento, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre
-from ONELEITO_BI.BI_Dim_Promocion
+select top 3 BI_Dim_categoria.categoria_nombre, sum(BI_regla_descuento) as promedio_descuento, temp.tiempo_anio, temp.tiempo_cuatrimestre
+FROM ONELEITO_BI.BI_Hecho_promocion
+JOIN
+group by BI_categoria, BI_descripcion, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre, BI_categoria_nombre
+
+
+select top 3 BI_Dim_categoria.categoria_nombre, sum(BI_regla_descuento) as promedio_descuento, temp.tiempo_anio, temp.tiempo_cuatrimestre
+from ONELEITO_BI.BI_HECHO_PROMOCION
 join ONELEITO_BI.BI_Dim_categoria on BI_Dim_Promocion.BI_categoria = BI_Dim_categoria.BI_categoria_id
 join ONELEITO_BI.BI_Hecho_venta on BI_Dim_Promocion.BI_promocion_id = BI_Hecho_venta.BI_promocion_id
 join ONELEITO_BI.BI_Dim_ticket on BI_Hecho_venta.BI_ticket_id = BI_Dim_ticket.BI_ticket_id
 join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_tiempo_id
 group by BI_categoria, BI_descripcion, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre, BI_categoria_nombre
 GO
+
 
 /*
 7. Porcentaje de cumplimiento de envíos en los tiempos programados por
