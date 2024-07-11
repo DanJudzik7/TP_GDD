@@ -493,15 +493,20 @@ BEGIN
 	ONELEITO_BI.ObtenerRangoEtarioID(cliente_fecha_nacimiento) as rango_etario,
 	(Select bis.sucursal_id from ONELEITO_BI.BI_Dim_sucursal bis where bis.sucursal_id = s.sucursal_id) as sucursal,
 	ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora),month(ti.ticket_fecha_hora)) as tiempo,
-	envio_costo ,
-	CASE WHEN (e.envio_fecha_hora_entregado between DATEADD(MINUTE,CAST(e.envio_hora_inicio* 60 AS INT),envio_fecha_programada) and DATEADD(MINUTE,CAST(e.envio_hora_fin* 60 AS INT),envio_fecha_programada)) THEN 0 ELSE 1 END
+	envio_costo, 
+	    CASE 
+        WHEN (e.envio_fecha_hora_entregado BETWEEN DATEADD(MINUTE, CAST(CONVERT(INT, e.envio_hora_inicio) * 60 AS INT), envio_fecha_programada) 
+        AND DATEADD(MINUTE, CAST(CONVERT(INT, e.envio_hora_fin) * 60 AS INT), envio_fecha_programada)) 
+        THEN 0 
+        ELSE 1 
+    END AS entregado_fuera_de_horario
 	FROM ONELEITO.Envio e
 	join ONELEITO.Sucursal s on s.sucursal_id = e.envio_sucursal
 	join ONELEITO.Localidad l on l.localidad_id = s.sucursal_localidad
 	join ONELEITO.Provincia p on p.provincia_id = s.sucursal_provincia
 	join ONELEITO.Cliente c on c.cliente_id = e.envio_cliente
 	join ONELEITO.Ticket ti on ti.ticket_id = e.envio_ticket
-	order by envio_costo
+	
 END
 GO
 
@@ -612,6 +617,7 @@ group by U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes
 
 
 go
+
 /*
 2. Cantidad unidades promedio. Cantidad promedio de artículos que se venden
 en función de los tickets según el turno para cada cuatrimestre de cada año. Se
@@ -632,18 +638,20 @@ tipo de caja para cada cuatrimestre. Se calcula tomando la cantidad de ventas
 correspondientes sobre el total de ventas anual.*/
 
 CREATE VIEW ONELEITO_BI.VISTA_3 AS
-SELECT em.BI_empleado_rango_etario_id, CA.BI_tipo_caja,
-    COUNT(*) * 100 / (SELECT COUNT(*) FROM ONELEITO_BI.BI_Hecho_venta) AS porcentaje
-FROM ONELEITO_BI.BI_Hecho_venta hv
-JOIN ONELEITO_BI.BI_Dim_ticket ti ON ti.BI_ticket_id = hv.BI_ticket_id
-JOIN ONELEITO_BI.BI_Dim_empleado em on em.BI_empleado_id = ti.BI_empleado_id
-JOIN ONELEITO_BI.BI_Dim_rango_etario RE ON RE.BI_rango_etario_id = em.BI_empleado_rango_etario_id
-JOIN ONELEITO_BI.BI_Dim_Caja ca on ca.BI_caja_id = ti.BI_caja_id
-JOIN ONELEITO_BI.BI_Dim_Tipo_Caja TC on ca.BI_tipo_caja = TC.BI_tipo_caja_id
-GROUP BY em.BI_empleado_rango_etario_id,CA.BI_tipo_caja
 
+	SELECT dre.rango_etario_detalle, 
+			dc.caja_tipo_caja, 
+			dt.tiempo_cuatrimestre,
+			 COUNT(*) * 100.0 / SUM(COUNT(*)) OVER () AS porcentaje_ventas_anual
+	
+	FROM ONELEITO_BI.BI_Hecho_venta hv
+	JOIN ONELEITO_BI.BI_Dim_rango_etario dre on dre.rango_etario_id = hv.venta_rango_empleado
+	JOIN ONELEITO_BI.BI_Dim_Caja dc on dc.caja_id = hv.venta_tipo_caja
+	JOIN ONELEITO_BI.BI_Dim_tiempo dt on dt.tiempo_id = hv.venta_tiempo
+	group by dre.rango_etario_detalle, dc.caja_tipo_caja, dt.tiempo_cuatrimestre
 
 go
+
 
 -- 4. Cantidad de ventas registradas por turno para cada localidad según el mes de cada año
 CREATE VIEW ONELEITO_BI.Vista_4
@@ -666,6 +674,8 @@ group by temp.tiempo_anio, temp.tiempo_mes
 GO
 
 -- 6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
+
+/* 
 create view ONELEITO_BI.Vista_6
 as
 select top 3 BI_Dim_categoria.categoria_nombre, sum(BI_regla_descuento) as promedio_descuento, temp.tiempo_anio, temp.tiempo_cuatrimestre
@@ -801,3 +811,5 @@ GROUP BY
     mp.BI_medio_de_pago_tipo,
     t.BI_cuatrimestre
 GO
+
+*/
