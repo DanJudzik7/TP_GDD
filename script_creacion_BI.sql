@@ -501,6 +501,7 @@ BEGIN
 	join ONELEITO.Provincia p on p.provincia_id = s.sucursal_provincia
 	join ONELEITO.Cliente c on c.cliente_id = e.envio_cliente
 	join ONELEITO.Ticket ti on ti.ticket_id = e.envio_ticket
+	order by envio_costo
 END
 GO
 
@@ -603,11 +604,11 @@ ventas sobre el total de las mismas.
 */
 
 CREATE VIEW ONELEITO_BI.Vista_1 AS
-SELECT U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes,SUM(hv.venta_monto_ventas)/hv.venta_venta_cantidad as 'Promedio mensual por localidad'
+SELECT U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes,SUM(hv.venta_monto_ventas)/SUM(hv.venta_venta_cantidad) as 'Promedio mensual por localidad'
 FROM ONELEITO_BI.BI_Hecho_venta hv
 JOIN ONELEITO_BI.BI_Dim_tiempo DT ON hv.venta_tiempo = DT.tiempo_id
 JOIN ONELEITO_BI.BI_Dim_ubicacion U on hv.venta_ubicacion = U.ubicacion_id
-group by U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes,hv.venta_venta_cantidad
+group by U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes
 
 
 go
@@ -620,13 +621,11 @@ para el indicador se consideran todas las unidades.
 */
 
 CREATE VIEW ONELEITO_BI.VISTA_2 AS
-SELECT tmp.tiempo_cuatrimestre, tmp.tiempo_anio,trn.turno_inicio,trn.turno_fin,
-cast(SUM(hv.venta_prod_cantidad) as float) / cast(COUNT(DISTINCT hv.venta_rango_empleado + hv.venta_rango_cliente + hv.venta_ubicacion + hv.venta_tiempo + hv.venta_sucursal + hv.venta_turno + hv.venta_tipo_caja) as float) as CantidadUnidadesPromedio
-FROM ONELEITO_BI.BI_Hecho_venta hv
-JOIN ONELEITO_BI.BI_Dim_tiempo tmp on tmp.tiempo_id = hv.venta_tiempo
-JOIN ONELEITO_BI.BI_Dim_turno trn on trn.turno_id = hv.venta_turno
-GROUP BY tmp.tiempo_cuatrimestre, tmp.tiempo_anio,trn.turno_inicio,trn.turno_fin
-
+select (SUM(hv.venta_prod_cantidad)/SUM(hv.venta_venta_cantidad))*100 as CantidadUnidadesPromedio,dt.turno_inicio,dt.turno_fin ,tie.tiempo_cuatrimestre,tie.tiempo_anio
+	from ONELEITO_BI.BI_Hecho_venta hv
+	join ONELEITO_BI.BI_Dim_turno dt on dt.turno_id = hv.venta_turno
+	join ONELEITO_BI.BI_Dim_tiempo tie on tie.tiempo_id = hv.venta_tiempo
+	GROUP BY dt.turno_inicio,dt.turno_fin,tie.tiempo_cuatrimestre,tie.tiempo_anio
 GO
 /* 3. Porcentaje anual de ventas registradas por rango etario del empleado según el
 tipo de caja para cada cuatrimestre. Se calcula tomando la cantidad de ventas
