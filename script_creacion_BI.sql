@@ -629,7 +629,7 @@ sobre la cantidad de tickets. Si un producto tiene más de una unidad en un tick
 para el indicador se consideran todas las unidades.
 */
 
-CREATE VIEW ONELEITO_BI.VISTA_2 AS
+CREATE VIEW ONELEITO_BI.Vista_2 AS
 	SELECT tmp.tiempo_cuatrimestre, tmp.tiempo_anio,trn.turno_inicio,trn.turno_fin,
 		cast(SUM(hv.venta_prod_cantidad) as float) / cast(COUNT(DISTINCT hv.venta_rango_empleado + hv.venta_rango_cliente + hv.venta_ubicacion + hv.venta_tiempo + hv.venta_sucursal + hv.venta_turno + hv.venta_tipo_caja) as float) as CantidadUnidadesPromedio
 	FROM ONELEITO_BI.BI_Hecho_venta hv
@@ -643,8 +643,7 @@ GO
 tipo de caja para cada cuatrimestre. Se calcula tomando la cantidad de ventas
 correspondientes sobre el total de ventas anual.*/
 
-CREATE VIEW ONELEITO_BI.VISTA_3 AS
-
+CREATE VIEW ONELEITO_BI.Vista_3 AS
 	SELECT dre.rango_etario_detalle, 
 			dc.caja_tipo_caja, 
 			dt.tiempo_cuatrimestre,
@@ -655,11 +654,11 @@ CREATE VIEW ONELEITO_BI.VISTA_3 AS
 	JOIN ONELEITO_BI.BI_Dim_Caja dc on dc.caja_id = hv.venta_tipo_caja
 	JOIN ONELEITO_BI.BI_Dim_tiempo dt on dt.tiempo_id = hv.venta_tiempo
 	group by dre.rango_etario_detalle, dc.caja_tipo_caja, dt.tiempo_cuatrimestre
-
 go
 
-
--- 4. Cantidad de ventas registradas por turno para cada localidad según el mes de cada año
+/*
+4. Cantidad de ventas registradas por turno para cada localidad según el mes de cada año
+*/
 CREATE VIEW ONELEITO_BI.Vista_4
 AS
 select count(hv.venta_rango_empleado + hv.venta_rango_cliente + hv.venta_ubicacion + hv.venta_tiempo + hv.venta_sucursal + hv.venta_turno + hv.venta_tipo_caja) as cantidad, temp.tiempo_anio, temp.tiempo_mes, tur.turno_inicio, tur.turno_fin
@@ -669,7 +668,9 @@ join ONELEITO_BI.BI_Dim_turno tur on tur.turno_id = hv.venta_turno
 group by temp.tiempo_anio, temp.tiempo_mes, tur.turno_inicio, tur.turno_fin
 GO
 
--- 5. Porcentaje de descuento aplicados en función del total de los tickets según el mes de cada año.
+/*
+5. Porcentaje de descuento aplicados en función del total de los tickets según el mes de cada año.
+*/
 create view ONELEITO_BI.Vista_5
 as
 select (1-(avg(hp.pago_total)/((avg(hp.pago_total))+avg(hp.pago_descuento)))) as porcentaje_descuento_promedio,
@@ -679,8 +680,9 @@ join ONELEITO_BI.BI_Dim_tiempo temp on temp.tiempo_id = hp.pago_tiempo
 group by temp.tiempo_anio, temp.tiempo_mes
 GO
 
--- 6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
-
+/*
+6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
+*/
 create view ONELEITO_BI.Vista_6
 as
 select top 3 BI_Dim_categoria.categoria_nombre, avg(promocion_descuento) as promedio_descuento, temp.tiempo_anio, temp.tiempo_cuatrimestre
@@ -689,7 +691,6 @@ join ONELEITO_BI.BI_Dim_categoria on BI_Hecho_Promocion.promocion_categoria = BI
 join ONELEITO_BI.BI_Dim_tiempo temp on BI_Hecho_Promocion.promocion_tiempo = temp.tiempo_id
 group by categoria_nombre, temp.tiempo_anio, temp.tiempo_cuatrimestre, categoria_nombre
 GO
-
 
 /*
 7. Porcentaje de cumplimiento de envíos en los tiempos programados por
@@ -706,35 +707,36 @@ GROUP BY SU.sucursal_id, temp.tiempo_anio, temp.tiempo_mes
 GO
 
 /*
--- 8. Cantidad de envíos por rango etario de clientes para cada cuatrimestre de cada año.
+8. Cantidad de envíos por rango etario de clientes para cada cuatrimestre de cada año.
+*/
 CREATE VIEW ONELEITO_BI.Vista_8
 as
-SELECT re.BI_rango_etario,tiem.BI_anio,tiem.BI_cuatrimestre, COUNT(*) as cantidad_envios
+SELECT re.rango_etario_detalle, temp.tiempo_anio, temp.tiempo_cuatrimestre, COUNT(*) as cantidad_envios
 FROM ONELEITO_BI.BI_Hecho_envio he
-JOIN ONELEITO_BI.BI_Dim_ticket ti on ti.BI_ticket_id = he.BI_ticket_id
-JOIN ONELEITO_BI.BI_Dim_tiempo tiem on tiem.BI_tiempo_id = ti.BI_tiempo_id
-JOIN ONELEITO_BI.BI_Dim_cliente cl on cl.BI_cliente_id = he.BI_cliente_id
-JOIN ONELEITO_BI.BI_Dim_rango_etario re on re.BI_rango_etario_id = cl.BI_rango_etario_id
-group by re.BI_rango_etario,tiem.BI_anio,tiem.BI_cuatrimestre
+JOIN ONELEITO_BI.BI_Dim_tiempo temp ON he.envio_tiempo = temp.tiempo_id
+JOIN ONELEITO_BI.BI_Dim_rango_etario re on he.envio_rango_etario_cliente = re.rango_etario_id
+group by re.rango_etario_detalle, temp.tiempo_anio, temp.tiempo_cuatrimestre
 GO
 
--- 9. Las 5 localidades (tomando la localidad del cliente) con mayor costo de envío.
+/*
+/*
+9. Las 5 localidades (tomando la localidad del cliente) con mayor costo de envío.
+*/
 CREATE VIEW ONELEITO_BI.Vista_9 AS
 SELECT TOP 5 
     UB.BI_ubicacion_localidad, 
     he.BI_envio_costo
-FROM 
-    ONELEITO_BI.BI_Hecho_envio he
-JOIN 
-    ONELEITO_BI.BI_Dim_cliente cl ON cl.BI_cliente_id = he.BI_cliente_id
-JOIN 
-    ONELEITO_BI.BI_Dim_ubicacion UB ON UB.BI_ubicacion_id = cl.BI_ubicacion_id
-ORDER BY 
-    he.BI_envio_costo DESC;
+FROM ONELEITO_BI.BI_Hecho_envio he
+JOIN ONELEITO_BI.BI_Dim_cliente cl ON cl.BI_cliente_id = he.BI_cliente_id
+JOIN ONELEITO_BI.BI_Dim_ubicacion UB ON UB.BI_ubicacion_id = cl.BI_ubicacion_id
+ORDER BY he.BI_envio_costo DESC;
 GO
-/*Las 3 sucursales con el mayor importe de pagos en cuotas, según el medio de
+
+/*
+10. Las 3 sucursales con el mayor importe de pagos en cuotas, según el medio de
 pago, mes y año. Se calcula sumando los importes totales de todas las ventas en
-cuotas.*/
+cuotas.
+*/
 CREATE VIEW ONELEITO_BI.Vista_10 AS
 SELECT top 3
     s.BI_nombre AS Sucursal,
@@ -777,7 +779,9 @@ ORDER BY
     mp.BI_medio_de_pago_tipo;
 GO
 
-/*Promedio de importe de la cuota en función del rango etareo del cliente.*/
+/*
+11. Promedio de importe de la cuota en función del rango etareo del cliente.
+*/
 CREATE VIEW ONELEITO_BI.Vista_11 AS
 select c.BI_rango_etario_id, AVG(hp.BI_importe_cuota) AS PromedioImporteCuota from ONELEITO_BI.BI_Hecho_pago hp 
 join ONELEITO_BI.BI_Dim_cliente c on c.BI_cliente_id = hp.BI_cliente_id
@@ -785,27 +789,20 @@ group by c.BI_rango_etario_id
 GO
 
 /*
-Porcentaje de descuento aplicado por cada medio de pago en función del valor
+12. Porcentaje de descuento aplicado por cada medio de pago en función del valor
 de total de pagos sin el descuento, por cuatrimestre. Es decir, total de descuentos
 sobre el total de pagos más el total de descuentos.
 */
-
 CREATE VIEW ONELEITO_BI.Vista_12 AS
 SELECT
     mp.BI_medio_de_pago_tipo AS MedioDePago,
     t.BI_cuatrimestre AS Cuatrimestre,
 	100 - ((SUM(tkt.BI_importe)/SUM(tkt.BI_importe/(1-hp.BI_porcentaje_descuento))) * 100 ) AS PorcentajeDescuentoAplicado
-FROM
-    ONELEITO_BI.BI_HECHO_PAGO hp
-JOIN
-    ONELEITO_BI.BI_DIM_TICKET tkt ON tkt.BI_ticket_id = hp.BI_ticket_id
-JOIN
-    ONELEITO_BI.BI_DIM_MEDIO_DE_PAGO mp ON mp.BI_medio_de_pago_id = hp.BI_medio_de_pago_id
-JOIN
-    ONELEITO_BI.BI_DIM_TIEMPO t ON t.BI_tiempo_id = tkt.BI_tiempo_id
-GROUP BY
-    mp.BI_medio_de_pago_tipo,
-    t.BI_cuatrimestre
+FROM ONELEITO_BI.BI_HECHO_PAGO hp
+JOIN ONELEITO_BI.BI_DIM_TICKET tkt ON tkt.BI_ticket_id = hp.BI_ticket_id
+JOIN ONELEITO_BI.BI_DIM_MEDIO_DE_PAGO mp ON mp.BI_medio_de_pago_id = hp.BI_medio_de_pago_id
+JOIN ONELEITO_BI.BI_DIM_TIEMPO t ON t.BI_tiempo_id = tkt.BI_tiempo_id
+GROUP BY mp.BI_medio_de_pago_tipo, t.BI_cuatrimestre
 GO
 
 */
