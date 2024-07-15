@@ -603,7 +603,8 @@ exec ONELEITO_BI.BI_Migrar_Hecho_Promocion
 go
 -- Vistas
 
-/* 1 Ticket Promedio mensual. Valor promedio de las ventas (en $) según la
+/*
+1 Ticket Promedio mensual. Valor promedio de las ventas (en $) según la
 localidad, año y mes. Se calcula en función de la sumatoria del importe de las
 ventas sobre el total de las mismas.
 */
@@ -635,9 +636,10 @@ CREATE VIEW ONELEITO_BI.VISTA_2 AS
 	JOIN ONELEITO_BI.BI_Dim_tiempo tmp on tmp.tiempo_id = hv.venta_tiempo
 	JOIN ONELEITO_BI.BI_Dim_turno trn on trn.turno_id = hv.venta_turno
 	GROUP BY tmp.tiempo_cuatrimestre, tmp.tiempo_anio,trn.turno_inicio,trn.turno_fin
-
 GO
-/* 3. Porcentaje anual de ventas registradas por rango etario del empleado según el
+
+/*
+3. Porcentaje anual de ventas registradas por rango etario del empleado según el
 tipo de caja para cada cuatrimestre. Se calcula tomando la cantidad de ventas
 correspondientes sobre el total de ventas anual.*/
 
@@ -679,22 +681,13 @@ GO
 
 -- 6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
 
-/* 
 create view ONELEITO_BI.Vista_6
 as
-select top 3 BI_Dim_categoria.categoria_nombre, sum(BI_regla_descuento) as promedio_descuento, temp.tiempo_anio, temp.tiempo_cuatrimestre
-FROM ONELEITO_BI.BI_Hecho_promocion
-JOIN
-group by BI_categoria, BI_descripcion, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre, BI_categoria_nombre
-
-
-select top 3 BI_Dim_categoria.categoria_nombre, sum(BI_regla_descuento) as promedio_descuento, temp.tiempo_anio, temp.tiempo_cuatrimestre
-from ONELEITO_BI.BI_HECHO_PROMOCION
-join ONELEITO_BI.BI_Dim_categoria on BI_Dim_Promocion.BI_categoria = BI_Dim_categoria.BI_categoria_id
-join ONELEITO_BI.BI_Hecho_venta on BI_Dim_Promocion.BI_promocion_id = BI_Hecho_venta.BI_promocion_id
-join ONELEITO_BI.BI_Dim_ticket on BI_Hecho_venta.BI_ticket_id = BI_Dim_ticket.BI_ticket_id
-join ONELEITO_BI.BI_Dim_tiempo on BI_Dim_ticket.BI_tiempo_id = BI_Dim_tiempo.BI_tiempo_id
-group by BI_categoria, BI_descripcion, BI_Dim_tiempo.BI_anio, BI_Dim_tiempo.BI_cuatrimestre, BI_categoria_nombre
+select top 3 BI_Dim_categoria.categoria_nombre, avg(promocion_descuento) as promedio_descuento, temp.tiempo_anio, temp.tiempo_cuatrimestre
+from ONELEITO_BI.BI_Hecho_promocion
+join ONELEITO_BI.BI_Dim_categoria on BI_Hecho_Promocion.promocion_categoria = BI_Dim_categoria.categoria_id
+join ONELEITO_BI.BI_Dim_tiempo temp on BI_Hecho_Promocion.promocion_tiempo = temp.tiempo_id
+group by categoria_nombre, temp.tiempo_anio, temp.tiempo_cuatrimestre, categoria_nombre
 GO
 
 
@@ -704,16 +697,15 @@ sucursal por año/mes (desvío)
 */
 create view ONELEITO_BI.Vista_7
 AS
-SELECT SU.BI_sucursal_id, t.BI_anio, t.BI_mes,
-SUM(CASE WHEN (he.BI_envio_recibido between he.BI_envio_hora_estimada_inicio and he.BI_envio_hora_estimada_fin) THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS porcentaje
+SELECT SU.sucursal_id, temp.tiempo_anio, temp.tiempo_mes,
+100 - SUM(he.envio_demorado * 1) * 100.0 / COUNT(*) AS porcentaje
 FROM ONELEITO_BI.BI_Hecho_envio he
-JOIN ONELEITO_BI.BI_Dim_ticket ti ON ti.BI_ticket_id = he.BI_ticket_id
-JOIN ONELEITO_BI.BI_Dim_sucursal SU on SU.BI_sucursal_id = ti.BI_sucursal_id
-JOIN ONELEITO_BI.BI_Dim_tiempo t ON t.BI_tiempo_id = ti.BI_tiempo_id
-GROUP BY SU.BI_sucursal_id, t.BI_anio, t.BI_mes
-
+JOIN ONELEITO_BI.BI_Dim_sucursal su on he.envio_sucursal = su.sucursal_id
+JOIN ONELEITO_BI.BI_Dim_tiempo temp ON he.envio_tiempo = temp.tiempo_id
+GROUP BY SU.sucursal_id, temp.tiempo_anio, temp.tiempo_mes
 GO
 
+/*
 -- 8. Cantidad de envíos por rango etario de clientes para cada cuatrimestre de cada año.
 CREATE VIEW ONELEITO_BI.Vista_8
 as
