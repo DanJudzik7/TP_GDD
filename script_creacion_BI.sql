@@ -776,21 +776,17 @@ group by re.rango_etario_detalle
 GO
 
 /*
-/*
 12. Porcentaje de descuento aplicado por cada medio de pago en función del valor
 de total de pagos sin el descuento, por cuatrimestre. Es decir, total de descuentos
 sobre el total de pagos más el total de descuentos.
 */
 CREATE VIEW ONELEITO_BI.Vista_12 AS
 SELECT
-    mp.BI_medio_de_pago_tipo AS MedioDePago,
-    t.BI_cuatrimestre AS Cuatrimestre,
-	100 - ((SUM(tkt.BI_importe)/SUM(tkt.BI_importe/(1-hp.BI_porcentaje_descuento))) * 100 ) AS PorcentajeDescuentoAplicado
+    mp.medio_de_pago_tipo AS MedioDePago,
+    temp.tiempo_cuatrimestre AS Cuatrimestre,
+    SUM(hp.pago_descuento) / SUM(hp.pago_total+hp.pago_descuento) * 100 AS PorcentajeDescuentoAplicado
 FROM ONELEITO_BI.BI_HECHO_PAGO hp
-JOIN ONELEITO_BI.BI_DIM_TICKET tkt ON tkt.BI_ticket_id = hp.BI_ticket_id
-JOIN ONELEITO_BI.BI_DIM_MEDIO_DE_PAGO mp ON mp.BI_medio_de_pago_id = hp.BI_medio_de_pago_id
-JOIN ONELEITO_BI.BI_DIM_TIEMPO t ON t.BI_tiempo_id = tkt.BI_tiempo_id
-GROUP BY mp.BI_medio_de_pago_tipo, t.BI_cuatrimestre
+JOIN ONELEITO_BI.BI_DIM_MEDIO_DE_PAGO mp ON mp.medio_de_pago_id = hp.pago_medio_pago
+JOIN ONELEITO_BI.BI_Dim_tiempo temp ON temp.tiempo_id = hp.pago_tiempo
+GROUP BY mp.medio_de_pago_tipo, temp.tiempo_cuatrimestre
 GO
-
-*/
