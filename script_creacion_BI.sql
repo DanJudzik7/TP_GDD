@@ -246,7 +246,7 @@ create table ONELEITO_BI.BI_Hecho_envio
 	envio_rango_etario_cliente int not null,
 	envio_sucursal int not null,
 	envio_tiempo int not null,
-	envio_costo decimal(10,0) not null,
+	envio_costo decimal(10,2) not null,
 	envio_demorado bit not null,
 	constraint FK_BI_envio_ubicacion foreign key (envio_ubicacion) references ONELEITO_BI.BI_Dim_ubicacion(ubicacion_id),
 	constraint FK_BI_envio_rango_etario_cliente foreign key (envio_rango_etario_cliente) references ONELEITO_BI.BI_Dim_rango_etario(rango_etario_id),
@@ -262,9 +262,9 @@ create table ONELEITO_BI.BI_Hecho_pago
 	pago_rango_etario_cliente int not null,
 	pago_medio_pago int not null,
 	pago_tiempo int not null,
-	pago_total decimal(10,0) not null,
-	pago_cuotas decimal(10,0) not null,
-	pago_descuento decimal(10,0) not null,
+	pago_total decimal(10,2) not null,
+	pago_cuotas decimal(10,2) not null,
+	pago_descuento decimal(10,2) not null,
 	constraint FK_BI_pago_sucursal foreign key (pago_sucursal) references ONELEITO_BI.BI_Dim_sucursal(sucursal_id),
 	constraint FK_BI_pago_rango_etario_cliente foreign key (pago_rango_etario_cliente) references ONELEITO_BI.BI_Dim_rango_etario(rango_etario_id),
 	constraint FK_BI_pago_medio_pago foreign key (pago_medio_pago) references ONELEITO_BI.BI_Dim_medio_de_pago(medio_de_pago_id),
@@ -277,7 +277,7 @@ create table ONELEITO_BI.BI_Hecho_promocion
     promocion_tiempo int not null,
     promocion_subcategoria int not null,
     promocion_categoria int not null,
-    promocion_descuento decimal(10,0) not null,
+    promocion_descuento decimal(10,2) not null,
     constraint FK_promocion_tiempo foreign key (promocion_tiempo) references ONELEITO_BI.BI_Dim_tiempo(tiempo_id),
     constraint FK_promocion_subcategoria foreign key (promocion_subcategoria) references ONELEITO_BI.BI_Dim_subcategoria(subcategoria_id),
     constraint FK_promocion_categoria foreign key (promocion_categoria) references ONELEITO_BI.BI_Dim_categoria(categoria_id)
@@ -547,6 +547,7 @@ GROUP BY
 END
 GO
 
+
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Pago
 AS
 BEGIN
@@ -613,13 +614,12 @@ CREATE VIEW ONELEITO_BI.Vista_1 AS
 SELECT U.ubicacion_localidad,
 		DT.tiempo_anio, 
 		DT.tiempo_mes,
-		SUM(hv.venta_monto_ventas)/sum(hv.venta_venta_cantidad) as 'Promedio mensual por localidad'
+		AVG(hv.venta_monto_ventas) as'Promedio mensual por localidad' -- TODO:REVISAR EL PROMEDIO
 FROM ONELEITO_BI.BI_Hecho_venta hv
 JOIN ONELEITO_BI.BI_Dim_tiempo DT ON hv.venta_tiempo = DT.tiempo_id
 JOIN ONELEITO_BI.BI_Dim_ubicacion U on hv.venta_ubicacion = U.ubicacion_id
 group by U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes
 go
-
 /*
 2. Cantidad unidades promedio. Cantidad promedio de artículos que se venden
 en función de los tickets según el turno para cada cuatrimestre de cada año. Se
@@ -630,7 +630,7 @@ para el indicador se consideran todas las unidades.
 
 CREATE VIEW ONELEITO_BI.Vista_2 AS
 SELECT tmp.tiempo_cuatrimestre, tmp.tiempo_anio,trn.turno_inicio,trn.turno_fin,
-    cast(SUM(hv.venta_prod_cantidad) as float) / cast(COUNT(DISTINCT hv.venta_rango_empleado + hv.venta_rango_cliente + hv.venta_ubicacion + hv.venta_tiempo + hv.venta_sucursal + hv.venta_turno + hv.venta_tipo_caja) as float) as CantidadUnidadesPromedio
+    AVG(hv.venta_venta_cantidad) as CantidadUnidadesPromedio
 FROM ONELEITO_BI.BI_Hecho_venta hv
 JOIN ONELEITO_BI.BI_Dim_tiempo tmp on tmp.tiempo_id = hv.venta_tiempo
 JOIN ONELEITO_BI.BI_Dim_turno trn on trn.turno_id = hv.venta_turno
@@ -659,7 +659,7 @@ go
 4. Cantidad de ventas registradas por turno para cada localidad según el mes de cada año
 */
 CREATE VIEW ONELEITO_BI.Vista_4 AS
-select count(hv.venta_rango_empleado + hv.venta_rango_cliente + hv.venta_ubicacion + hv.venta_tiempo + hv.venta_sucursal + hv.venta_turno + hv.venta_tipo_caja) as cantidad, tm.tiempo_anio, tm.tiempo_mes, tur.turno_inicio, tur.turno_fin
+select count(*) as cantidad, tm.tiempo_anio, tm.tiempo_mes, tur.turno_inicio, tur.turno_fin
 from ONELEITO_BI.BI_Hecho_venta hv
 join ONELEITO_BI.BI_Dim_tiempo tm on tm.tiempo_id = hv.venta_tiempo
 join ONELEITO_BI.BI_Dim_turno tur on tur.turno_id = hv.venta_turno
@@ -670,7 +670,7 @@ GO
 5. Porcentaje de descuento aplicados en función del total de los tickets según el mes de cada año.
 */
 create view ONELEITO_BI.Vista_5 as
-select (1-(avg(hp.pago_total)/((avg(hp.pago_total))+avg(hp.pago_descuento)))) as porcentaje_descuento_promedio,
+select (1-(avg(hp.pago_total)/((avg(hp.pago_total))+avg(hp.pago_descuento))))*100 as porcentaje_descuento_promedio,
 	tm.tiempo_anio, tm.tiempo_mes
 from ONELEITO_BI.BI_Hecho_pago hp
 join ONELEITO_BI.BI_Dim_tiempo tm on tm.tiempo_id = hp.pago_tiempo
@@ -681,7 +681,8 @@ GO
 6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
 */
 create view ONELEITO_BI.Vista_6 as
-select top 3 BI_Dim_categoria.categoria_nombre, avg(promocion_descuento) as promedio_descuento, tm.tiempo_anio, tm.tiempo_cuatrimestre
+select  BI_Dim_categoria.categoria_nombre, avg(promocion_descuento) as promedio_descuento,
+ tm.tiempo_anio, tm.tiempo_cuatrimestre
 from ONELEITO_BI.BI_Hecho_promocion
 join ONELEITO_BI.BI_Dim_categoria on BI_Hecho_Promocion.promocion_categoria = BI_Dim_categoria.categoria_id
 join ONELEITO_BI.BI_Dim_tiempo tm on BI_Hecho_Promocion.promocion_tiempo = tm.tiempo_id
