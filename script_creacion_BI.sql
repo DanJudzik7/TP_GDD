@@ -618,7 +618,6 @@ FROM ONELEITO_BI.BI_Hecho_venta hv
 JOIN ONELEITO_BI.BI_Dim_tiempo DT ON hv.venta_tiempo = DT.tiempo_id
 JOIN ONELEITO_BI.BI_Dim_ubicacion U on hv.venta_ubicacion = U.ubicacion_id
 group by U.ubicacion_localidad,DT.tiempo_anio, DT.tiempo_mes
-order by DT.tiempo_mes
 go
 
 /*
@@ -630,12 +629,12 @@ para el indicador se consideran todas las unidades.
 */
 
 CREATE VIEW ONELEITO_BI.Vista_2 AS
-	SELECT tmp.tiempo_cuatrimestre, tmp.tiempo_anio,trn.turno_inicio,trn.turno_fin,
-		cast(SUM(hv.venta_prod_cantidad) as float) / cast(COUNT(DISTINCT hv.venta_rango_empleado + hv.venta_rango_cliente + hv.venta_ubicacion + hv.venta_tiempo + hv.venta_sucursal + hv.venta_turno + hv.venta_tipo_caja) as float) as CantidadUnidadesPromedio
-	FROM ONELEITO_BI.BI_Hecho_venta hv
-	JOIN ONELEITO_BI.BI_Dim_tiempo tmp on tmp.tiempo_id = hv.venta_tiempo
-	JOIN ONELEITO_BI.BI_Dim_turno trn on trn.turno_id = hv.venta_turno
-	GROUP BY tmp.tiempo_cuatrimestre, tmp.tiempo_anio,trn.turno_inicio,trn.turno_fin
+SELECT tmp.tiempo_cuatrimestre, tmp.tiempo_anio,trn.turno_inicio,trn.turno_fin,
+    cast(SUM(hv.venta_prod_cantidad) as float) / cast(COUNT(DISTINCT hv.venta_rango_empleado + hv.venta_rango_cliente + hv.venta_ubicacion + hv.venta_tiempo + hv.venta_sucursal + hv.venta_turno + hv.venta_tipo_caja) as float) as CantidadUnidadesPromedio
+FROM ONELEITO_BI.BI_Hecho_venta hv
+JOIN ONELEITO_BI.BI_Dim_tiempo tmp on tmp.tiempo_id = hv.venta_tiempo
+JOIN ONELEITO_BI.BI_Dim_turno trn on trn.turno_id = hv.venta_turno
+GROUP BY tmp.tiempo_cuatrimestre, tmp.tiempo_anio,trn.turno_inicio,trn.turno_fin
 GO
 
 /*
@@ -644,27 +643,27 @@ tipo de caja para cada cuatrimestre. Se calcula tomando la cantidad de ventas
 correspondientes sobre el total de ventas anual.*/
 
 CREATE VIEW ONELEITO_BI.Vista_3 AS
-	SELECT dre.rango_etario_detalle, 
-			dc.caja_tipo_caja, 
-			dt.tiempo_cuatrimestre,
-			 COUNT(*) * 100.0 / SUM(COUNT(*)) OVER () AS porcentaje_ventas_anual
-	
-	FROM ONELEITO_BI.BI_Hecho_venta hv
-	JOIN ONELEITO_BI.BI_Dim_rango_etario dre on dre.rango_etario_id = hv.venta_rango_empleado
-	JOIN ONELEITO_BI.BI_Dim_Caja dc on dc.caja_id = hv.venta_tipo_caja
-	JOIN ONELEITO_BI.BI_Dim_tiempo dt on dt.tiempo_id = hv.venta_tiempo
-	group by dre.rango_etario_detalle, dc.caja_tipo_caja, dt.tiempo_cuatrimestre
+SELECT dre.rango_etario_detalle, 
+        dc.caja_tipo_caja, 
+        dt.tiempo_cuatrimestre,
+            COUNT(*) * 100.0 / SUM(COUNT(*)) OVER () AS porcentaje_ventas_anual
+
+FROM ONELEITO_BI.BI_Hecho_venta hv
+JOIN ONELEITO_BI.BI_Dim_rango_etario dre on dre.rango_etario_id = hv.venta_rango_empleado
+JOIN ONELEITO_BI.BI_Dim_Caja dc on dc.caja_id = hv.venta_tipo_caja
+JOIN ONELEITO_BI.BI_Dim_tiempo dt on dt.tiempo_id = hv.venta_tiempo
+group by dre.rango_etario_detalle, dc.caja_tipo_caja, dt.tiempo_cuatrimestre
 go
 
 /*
 4. Cantidad de ventas registradas por turno para cada localidad según el mes de cada año
 */
 CREATE VIEW ONELEITO_BI.Vista_4 AS
-select count(hv.venta_rango_empleado + hv.venta_rango_cliente + hv.venta_ubicacion + hv.venta_tiempo + hv.venta_sucursal + hv.venta_turno + hv.venta_tipo_caja) as cantidad, temp.tiempo_anio, temp.tiempo_mes, tur.turno_inicio, tur.turno_fin
+select count(hv.venta_rango_empleado + hv.venta_rango_cliente + hv.venta_ubicacion + hv.venta_tiempo + hv.venta_sucursal + hv.venta_turno + hv.venta_tipo_caja) as cantidad, tm.tiempo_anio, tm.tiempo_mes, tur.turno_inicio, tur.turno_fin
 from ONELEITO_BI.BI_Hecho_venta hv
-join ONELEITO_BI.BI_Dim_tiempo temp on temp.tiempo_id = hv.venta_tiempo
+join ONELEITO_BI.BI_Dim_tiempo tm on tm.tiempo_id = hv.venta_tiempo
 join ONELEITO_BI.BI_Dim_turno tur on tur.turno_id = hv.venta_turno
-group by temp.tiempo_anio, temp.tiempo_mes, tur.turno_inicio, tur.turno_fin
+group by tm.tiempo_anio, tm.tiempo_mes, tur.turno_inicio, tur.turno_fin
 GO
 
 /*
@@ -672,21 +671,21 @@ GO
 */
 create view ONELEITO_BI.Vista_5 as
 select (1-(avg(hp.pago_total)/((avg(hp.pago_total))+avg(hp.pago_descuento)))) as porcentaje_descuento_promedio,
-	temp.tiempo_anio, temp.tiempo_mes
+	tm.tiempo_anio, tm.tiempo_mes
 from ONELEITO_BI.BI_Hecho_pago hp
-join ONELEITO_BI.BI_Dim_tiempo temp on temp.tiempo_id = hp.pago_tiempo
-group by temp.tiempo_anio, temp.tiempo_mes
+join ONELEITO_BI.BI_Dim_tiempo tm on tm.tiempo_id = hp.pago_tiempo
+group by tm.tiempo_anio, tm.tiempo_mes
 GO
 
 /*
 6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
 */
 create view ONELEITO_BI.Vista_6 as
-select top 3 BI_Dim_categoria.categoria_nombre, avg(promocion_descuento) as promedio_descuento, temp.tiempo_anio, temp.tiempo_cuatrimestre
+select top 3 BI_Dim_categoria.categoria_nombre, avg(promocion_descuento) as promedio_descuento, tm.tiempo_anio, tm.tiempo_cuatrimestre
 from ONELEITO_BI.BI_Hecho_promocion
 join ONELEITO_BI.BI_Dim_categoria on BI_Hecho_Promocion.promocion_categoria = BI_Dim_categoria.categoria_id
-join ONELEITO_BI.BI_Dim_tiempo temp on BI_Hecho_Promocion.promocion_tiempo = temp.tiempo_id
-group by categoria_nombre, temp.tiempo_anio, temp.tiempo_cuatrimestre, categoria_nombre
+join ONELEITO_BI.BI_Dim_tiempo tm on BI_Hecho_Promocion.promocion_tiempo = tm.tiempo_id
+group by categoria_nombre, tm.tiempo_anio, tm.tiempo_cuatrimestre, categoria_nombre
 GO
 
 /*
@@ -694,23 +693,23 @@ GO
 sucursal por año/mes (desvío)
 */
 create view ONELEITO_BI.Vista_7 AS
-SELECT SU.sucursal_id, temp.tiempo_anio, temp.tiempo_mes,
+SELECT SU.sucursal_id, tm.tiempo_anio, tm.tiempo_mes,
 100 - SUM(he.envio_demorado * 1) * 100.0 / COUNT(*) AS porcentaje
 FROM ONELEITO_BI.BI_Hecho_envio he
 JOIN ONELEITO_BI.BI_Dim_sucursal su on he.envio_sucursal = su.sucursal_id
-JOIN ONELEITO_BI.BI_Dim_tiempo temp ON he.envio_tiempo = temp.tiempo_id
-GROUP BY SU.sucursal_id, temp.tiempo_anio, temp.tiempo_mes
+JOIN ONELEITO_BI.BI_Dim_tiempo tm ON he.envio_tiempo = tm.tiempo_id
+GROUP BY SU.sucursal_id, tm.tiempo_anio, tm.tiempo_mes
 GO
 
 /*
 8. Cantidad de envíos por rango etario de clientes para cada cuatrimestre de cada año.
 */
 CREATE VIEW ONELEITO_BI.Vista_8 as
-SELECT re.rango_etario_detalle, temp.tiempo_anio, temp.tiempo_cuatrimestre, COUNT(*) as cantidad_envios
+SELECT re.rango_etario_detalle, tm.tiempo_anio, tm.tiempo_cuatrimestre, COUNT(*) as cantidad_envios
 FROM ONELEITO_BI.BI_Hecho_envio he
-JOIN ONELEITO_BI.BI_Dim_tiempo temp ON he.envio_tiempo = temp.tiempo_id
+JOIN ONELEITO_BI.BI_Dim_tiempo tm ON he.envio_tiempo = tm.tiempo_id
 JOIN ONELEITO_BI.BI_Dim_rango_etario re on he.envio_rango_etario_cliente = re.rango_etario_id
-group by re.rango_etario_detalle, temp.tiempo_anio, temp.tiempo_cuatrimestre
+group by re.rango_etario_detalle, tm.tiempo_anio, tm.tiempo_cuatrimestre
 GO
 
 /*
@@ -731,38 +730,38 @@ cuotas.
 CREATE VIEW ONELEITO_BI.Vista_10 AS
 SELECT top 3
     s.sucursal_nombre AS Sucursal,
-    temp.tiempo_anio AS Año,
-    temp.tiempo_mes AS Mes,
+    tm.tiempo_anio AS Año,
+    tm.tiempo_mes AS Mes,
     mp.medio_de_pago_tipo AS MedioDePago,
     SUM(hp.pago_cuotas) AS TotalImporteCuotas
 FROM ONELEITO_BI.BI_HECHO_PAGO hp
 JOIN ONELEITO_BI.BI_DIM_SUCURSAL s ON s.sucursal_id = hp.pago_sucursal
-JOIN ONELEITO_BI.BI_Dim_tiempo temp ON temp.tiempo_id = hp.pago_tiempo
+JOIN ONELEITO_BI.BI_Dim_tiempo tm ON tm.tiempo_id = hp.pago_tiempo
 JOIN ONELEITO_BI.BI_DIM_MEDIO_DE_PAGO mp ON mp.medio_de_pago_id = hp.pago_medio_pago
 GROUP BY 
     s.sucursal_nombre,
-    temp.tiempo_anio,
-    temp.tiempo_mes,
+    tm.tiempo_anio,
+    tm.tiempo_mes,
     mp.medio_de_pago_tipo
 HAVING 
     SUM(hp.pago_cuotas) IN (    
 	SELECT TOP 3 SUM(hp2.pago_cuotas)
         FROM ONELEITO_BI.BI_HECHO_PAGO hp2
         JOIN ONELEITO_BI.BI_DIM_SUCURSAL s2 ON s2.sucursal_id = hp2.pago_sucursal
-        JOIN ONELEITO_BI.BI_Dim_tiempo temp2 ON temp2.tiempo_id = hp2.pago_tiempo
+        JOIN ONELEITO_BI.BI_Dim_tiempo tm2 ON tm2.tiempo_id = hp2.pago_tiempo
         JOIN ONELEITO_BI.BI_DIM_MEDIO_DE_PAGO mp2 ON mp2.medio_de_pago_id = hp2.pago_medio_pago
-        WHERE temp2.tiempo_anio = temp.tiempo_anio AND temp2.tiempo_mes = temp.tiempo_mes AND mp2.medio_de_pago_tipo = mp.medio_de_pago_tipo
+        WHERE tm2.tiempo_anio = tm.tiempo_anio AND tm2.tiempo_mes = tm.tiempo_mes AND mp2.medio_de_pago_tipo = mp.medio_de_pago_tipo
         GROUP BY 
             s2.sucursal_nombre,
-            temp2.tiempo_anio,
-            temp2.tiempo_mes,
+            tm2.tiempo_anio,
+            tm2.tiempo_mes,
             mp2.medio_de_pago_tipo
         ORDER BY SUM(hp2.pago_cuotas) DESC
     )
 ORDER BY 
     TotalImporteCuotas DESC,
-    temp.tiempo_anio,
-    temp.tiempo_mes,
+    tm.tiempo_anio,
+    tm.tiempo_mes,
     mp.medio_de_pago_tipo;
 GO
 
@@ -783,10 +782,10 @@ sobre el total de pagos más el total de descuentos.
 CREATE VIEW ONELEITO_BI.Vista_12 AS
 SELECT
     mp.medio_de_pago_tipo AS MedioDePago,
-    temp.tiempo_cuatrimestre AS Cuatrimestre,
+    tm.tiempo_cuatrimestre AS Cuatrimestre,
     SUM(hp.pago_descuento) / SUM(hp.pago_total+hp.pago_descuento) * 100 AS PorcentajeDescuentoAplicado
 FROM ONELEITO_BI.BI_HECHO_PAGO hp
 JOIN ONELEITO_BI.BI_DIM_MEDIO_DE_PAGO mp ON mp.medio_de_pago_id = hp.pago_medio_pago
-JOIN ONELEITO_BI.BI_Dim_tiempo temp ON temp.tiempo_id = hp.pago_tiempo
-GROUP BY mp.medio_de_pago_tipo, temp.tiempo_cuatrimestre
+JOIN ONELEITO_BI.BI_Dim_tiempo tm ON tm.tiempo_id = hp.pago_tiempo
+GROUP BY mp.medio_de_pago_tipo, tm.tiempo_cuatrimestre
 GO
