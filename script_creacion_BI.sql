@@ -506,7 +506,7 @@ BEGIN
 	join ONELEITO.Localidad l on l.localidad_id = c.cliente_localidad
 	join ONELEITO.Provincia p on p.provincia_id = c.cliente_provincia
 	join ONELEITO.Ticket ti on ti.ticket_id = e.envio_ticket
-	order by envio_costo
+	
 END
 GO
 
