@@ -558,7 +558,7 @@ BEGIN
     (SELECT dmdp.medio_de_pago_id FROM ONELEITO_BI.BI_Dim_medio_de_pago dmdp where dmdp.medio_de_pago_tipo = tmp.tipo_medio_pago_nombre and dmdp.medio_de_pago_detalle = mp.medio_pago_descripcion) as medio_de_pago,
     ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora),month(ti.ticket_fecha_hora)) as tiempo,
     SUM(pa.pago_importe),
-    ISNULL(dp.detalle_pago_coutas,1) as cuotas,
+    dp.detalle_pago_coutas as cuotas,
     sum(pa.pago_descuento)
     FROM ONELEITO.Pago pa
     JOIN ONELEITO.Ticket ti on ti.ticket_id = pa.pago_ticket
@@ -567,7 +567,7 @@ BEGIN
     JOIN ONELEITO.Cliente cl on cl.cliente_id = dp.detalle_pago_cliente
     JOIN ONELEITO.Medio_Pago mp on mp.medio_pago_id = pa.pago_medio_pago
     JOIN ONELEITO.Tipo_Medio_Pago tmp on tmp.tipo_medio_pago_id = mp.medio_pago_tipo
-	GROUP BY sucursal_id,cliente_fecha_nacimiento,tmp.tipo_medio_pago_nombre,mp.medio_pago_descripcion,ti.ticket_fecha_hora
+	GROUP BY sucursal_id,cliente_fecha_nacimiento,tmp.tipo_medio_pago_nombre,mp.medio_pago_descripcion,ti.ticket_fecha_hora,dp.detalle_pago_coutas
 
 	
 END
