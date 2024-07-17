@@ -510,84 +510,99 @@ BEGIN
 END
 GO
 
-CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Venta --TODO: REVISAR
+CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Venta
 AS
 BEGIN
 INSERT INTO ONELEITO_BI.BI_Hecho_venta(venta_rango_empleado,venta_rango_cliente,venta_ubicacion,venta_tiempo,venta_sucursal,venta_turno,venta_tipo_caja,
 venta_venta_cantidad,venta_prod_cantidad,venta_monto_ventas,venta_descuento)
 
-SELECT 
+SELECT DISTINCT
     ONELEITO_BI.ObtenerRangoEtarioID(em.empleado_fecha_nacimiento) as venta_rango_empleado,
     ONELEITO_BI.ObtenerRangoEtarioID(cli.cliente_fecha_nacimiento) as venta_rango_cliente,
-    (SELECT du.ubicacion_id FROM ONELEITO_BI.BI_Dim_ubicacion du where du.ubicacion_localidad = lo.localidad_nombre and du.ubicacion_provincia = pro.provincia_nombre) as venta_ubicacion,
+    du.ubicacion_id as venta_ubicacion,
     ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora), MONTH(ti.ticket_fecha_hora)) as venta_tiempo,
-    (SELECT dsu.sucursal_id FROM ONELEITO_BI.BI_Dim_sucursal dsu where dsu.sucursal_nombre = su.sucursal_nombre) as venta_sucursal,
+    dsu.sucursal_id as venta_sucursal,
     ONELEITO_BI.ObtenerTurnoID(ti.ticket_fecha_hora) as venta_turno,
-    (SELECT tp.tipo_caja_id FROM ONELEITO_BI.BI_Dim_Caja dtp where dtp.caja_tipo_caja = tp.tipo_caja_nombre) as venta_tipo_caja,
+     tp.tipo_caja_id  as venta_tipo_caja,
     SUM(pxt.producto_ticket_cantidad_vendida) as venta_venta_cantidad,
     COUNT(distinct pxt.producto_ticket_id) as venta_prod_cantidad,
-    sum(ti.ticket_total) as venta_monto_ventas,
-    sum(ti.ticket_descuento_medio_pago) as venta_descuento
-
+    SUM(ti.ticket_total) as venta_monto_ventas,
+    SUM(ti.ticket_descuento_medio_pago) as venta_descuento
 FROM ONELEITO.Ticket ti
-JOIN ONELEITO.Empleado em on em.empleado_id = ti.ticket_empleado
-JOIN ONELEITO.Pago pa on pa.pago_ticket = ti.ticket_id
-JOIN ONELEITO.Detalle_pago dp on dp.detalle_pago_id = pa.pago_detalle
-JOIN ONELEITO.Cliente cli on cli.cliente_id = dp.detalle_pago_cliente
-JOIN ONELEITO.Sucursal su on su.sucursal_id = ti.ticket_sucursal
-JOIN ONELEITO.Provincia pro on pro.provincia_id = su.sucursal_provincia
-JOIN ONELEITO.Localidad lo on lo.localidad_id = su.sucursal_localidad
-JOIN ONELEITO.Caja ca on ca.caja_id = ti.ticket_caja
-JOIN ONELEITO.Tipo_caja tp on tp.tipo_caja_id = ca.caja_tipo_caja
-JOIN ONELEITO.Productos_X_Tickets pxt on pxt.ticket_id = ti.ticket_id
-
+    JOIN ONELEITO.Empleado em on em.empleado_id = ti.ticket_empleado
+    JOIN ONELEITO.Pago pa on pa.pago_ticket = ti.ticket_id
+    JOIN ONELEITO.Detalle_pago dp on dp.detalle_pago_id = pa.pago_detalle
+    JOIN ONELEITO.Cliente cli on cli.cliente_id = dp.detalle_pago_cliente
+    JOIN ONELEITO.Sucursal su on su.sucursal_id = ti.ticket_sucursal
+    JOIN ONELEITO.Provincia pro on pro.provincia_id = su.sucursal_provincia
+    JOIN ONELEITO.Localidad lo on lo.localidad_id = su.sucursal_localidad
+    JOIN ONELEITO.Caja ca on ca.caja_id = ti.ticket_caja
+    JOIN ONELEITO.Tipo_caja tp on tp.tipo_caja_id = ca.caja_tipo_caja
+    JOIN ONELEITO.Productos_X_Tickets pxt on pxt.ticket_id = ti.ticket_id
+    JOIN ONELEITO_BI.BI_Dim_ubicacion du on du.ubicacion_localidad = lo.localidad_nombre and du.ubicacion_provincia = pro.provincia_nombre
+    JOIN ONELEITO_BI.BI_Dim_sucursal dsu on dsu.sucursal_nombre = su.sucursal_nombre
+    JOIN ONELEITO_BI.BI_Dim_Caja dtp on dtp.caja_tipo_caja = tp.tipo_caja_nombre
 GROUP BY
-    em.empleado_fecha_nacimiento,cli.cliente_fecha_nacimiento, lo.localidad_nombre, pro.provincia_nombre,ti.ticket_fecha_hora,ti.ticket_fecha_hora,su.sucursal_nombre,ti.ticket_fecha_hora,
-    tp.tipo_caja_nombre, tp.tipo_caja_id
+    ONELEITO_BI.ObtenerRangoEtarioID(em.empleado_fecha_nacimiento),
+    ONELEITO_BI.ObtenerRangoEtarioID(cli.cliente_fecha_nacimiento),
+    du.ubicacion_id,
+    ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora), MONTH(ti.ticket_fecha_hora)),
+    dsu.sucursal_id,
+    ONELEITO_BI.ObtenerTurnoID(ti.ticket_fecha_hora),
+    tp.tipo_caja_id
 END
 GO
 
-
-CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Pago  --TODO: REVISAR
+CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Pago
 AS
 BEGIN
     INSERT INTO ONELEITO_BI.BI_Hecho_pago(pago_sucursal,pago_rango_etario_cliente,pago_medio_pago,pago_tiempo,pago_total,pago_cuotas,pago_descuento)
 
     SELECT DISTINCT sucursal_id, 
-    ONELEITO_BI.ObtenerRangoEtarioID(cliente_fecha_nacimiento) as rango_etario,
-    (SELECT dmdp.medio_de_pago_id FROM ONELEITO_BI.BI_Dim_medio_de_pago dmdp where dmdp.medio_de_pago_tipo = tmp.tipo_medio_pago_nombre and dmdp.medio_de_pago_detalle = mp.medio_pago_descripcion) as medio_de_pago,
-    ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora),month(ti.ticket_fecha_hora)) as tiempo,
-    SUM(pa.pago_importe),
-    dp.detalle_pago_coutas as cuotas,
-    sum(pa.pago_descuento)
+        ONELEITO_BI.ObtenerRangoEtarioID(cliente_fecha_nacimiento) as rango_etario,
+        dmdp.medio_de_pago_id  as medio_de_pago,
+        ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora),month(ti.ticket_fecha_hora)) as tiempo,
+        SUM(pa.pago_importe) as pago_total,
+        ISNULL(dp.detalle_pago_coutas,1) AS cuotas,
+        SUM(pa.pago_descuento) as pago_descuento
     FROM ONELEITO.Pago pa
-    JOIN ONELEITO.Ticket ti on ti.ticket_id = pa.pago_ticket
-    JOIN ONELEITO.Sucursal su on su.sucursal_id = ti.ticket_sucursal
-    JOIN ONELEITO.Detalle_pago dp on dp.detalle_pago_id = pa.pago_detalle 
-    JOIN ONELEITO.Cliente cl on cl.cliente_id = dp.detalle_pago_cliente
-    JOIN ONELEITO.Medio_Pago mp on mp.medio_pago_id = pa.pago_medio_pago
-    JOIN ONELEITO.Tipo_Medio_Pago tmp on tmp.tipo_medio_pago_id = mp.medio_pago_tipo
-	GROUP BY sucursal_id,cliente_fecha_nacimiento,tmp.tipo_medio_pago_nombre,mp.medio_pago_descripcion,ti.ticket_fecha_hora,dp.detalle_pago_coutas
-
-	
+        JOIN ONELEITO.Ticket ti on ti.ticket_id = pa.pago_ticket
+        JOIN ONELEITO.Sucursal su on su.sucursal_id = ti.ticket_sucursal
+        LEFT JOIN ONELEITO.Detalle_pago dp on dp.detalle_pago_id = pa.pago_detalle
+        JOIN ONELEITO.Cliente cl on cl.cliente_id = dp.detalle_pago_cliente
+        JOIN ONELEITO.Medio_Pago mp on mp.medio_pago_id = pa.pago_medio_pago
+        JOIN ONELEITO.Tipo_Medio_Pago tmp on tmp.tipo_medio_pago_id = mp.medio_pago_tipo
+        JOIN ONELEITO_BI.BI_Dim_medio_de_pago dmdp on dmdp.medio_de_pago_tipo = tmp.tipo_medio_pago_nombre and dmdp.medio_de_pago_detalle = mp.medio_pago_descripcion
+    GROUP BY sucursal_id, ONELEITO_BI.ObtenerRangoEtarioID(cliente_fecha_nacimiento),dmdp.medio_de_pago_id,ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora),month(ti.ticket_fecha_hora)), dp.detalle_pago_coutas
 END
 GO
-
 CREATE PROCEDURE ONELEITO_BI.BI_Migrar_Hecho_Promocion
 AS
 BEGIN
     INSERT INTO ONELEITO_BI.BI_Hecho_promocion(promocion_tiempo,promocion_categoria,promocion_subcategoria,promocion_descuento)
 
-    SELECT DISTINCT ONELEITO_BI.ObtenerTiempoID(YEAR(prom.promocion_fecha_inicio),month(prom.promocion_fecha_inicio)) as tiempo, --TODO: REVISAR SI ES AMBOS TIEMPOS O SOLO INICIO/FIN
-    (SELECT dcat.categoria_id from ONELEITO_BI.BI_Dim_categoria dcat where dcat.categoria_nombre = cat.categoria_nombre) as categoria,
-    (SELECT dsub.subcategoria_id from ONELEITO_BI.BI_Dim_subcategoria dsub where dsub.subcategoria_nombre = sub.subcategoria_nombre) as subcategoria,
-    reg.regla_descuento
-    FROM ONELEITO.Promocion prom
-    JOIN ONELEITO.Productos_X_Promocion pxp on pxp.promocion_id = prom.promocion_id
-    JOIN ONELEITO.Producto prod on prod.producto_id = pxp.producto_id
-    JOIN ONELEITO.Subcategoria sub on sub.subcategoria_id = prod.producto_subcategoria
-    JOIN ONELEITO.Categoria cat on cat.categoria_id = sub.subcategoria_categoria
-    JOIN ONELEITO.Regla reg on reg.regla_id = prom.promocion_regla
+    SELECT 
+        ONELEITO_BI.ObtenerTiempoID(YEAR(prom.promocion_fecha_inicio), MONTH(prom.promocion_fecha_inicio)) AS tiempo, 
+        dcat.categoria_id AS categoria,
+        dsub.subcategoria_id AS subcategoria,
+        SUM(prod.producto_precio_unitario * reg.regla_descuento) AS descuento
+    FROM 
+        ONELEITO.Promocion prom
+        JOIN ONELEITO.Productos_X_Promocion pxp ON pxp.promocion_id = prom.promocion_id
+        JOIN ONELEITO.Producto prod ON prod.producto_id = pxp.producto_id
+        JOIN ONELEITO.Subcategoria sub ON sub.subcategoria_id = prod.producto_subcategoria
+        JOIN ONELEITO.Categoria cat ON cat.categoria_id = sub.subcategoria_categoria
+        JOIN ONELEITO.Regla reg ON reg.regla_id = prom.promocion_regla
+        JOIN ONELEITO_BI.BI_Dim_categoria dcat ON dcat.categoria_nombre = cat.categoria_nombre
+        JOIN ONELEITO_BI.BI_Dim_subcategoria dsub ON dsub.subcategoria_nombre = sub.subcategoria_nombre
+    GROUP BY 
+        ONELEITO_BI.ObtenerTiempoID(YEAR(prom.promocion_fecha_inicio), MONTH(prom.promocion_fecha_inicio)), 
+        dcat.categoria_id, 
+        dsub.subcategoria_id
+    ORDER BY 
+        tiempo, 
+        categoria, 
+        subcategoria;
 
 END
 GO
