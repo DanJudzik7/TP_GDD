@@ -259,7 +259,7 @@ create table ONELEITO_BI.BI_Hecho_pago
 (
 	pago_id int identity (1,1) not null primary key,
 	pago_sucursal int not null,
-	pago_rango_etario_cliente int not null,
+	pago_rango_etario_cliente int null,
 	pago_medio_pago int not null,
 	pago_tiempo int not null,
 	pago_total decimal(10,2) not null,
@@ -488,12 +488,12 @@ AS
 BEGIN
 	INSERT INTO ONELEITO_BI.BI_Hecho_envio(envio_ubicacion,envio_rango_etario_cliente,envio_sucursal,envio_tiempo,envio_costo,envio_demorado)
 
-	SELECT DISTINCT
-	(SELECT biu.ubicacion_id FROM ONELEITO_BI.BI_Dim_ubicacion biu where biu.ubicacion_localidad = l.localidad_nombre and biu.ubicacion_provincia = p.provincia_nombre) ubicacion,
+SELECT DISTINCT
+	 biu.ubicacion_id,
 	ONELEITO_BI.ObtenerRangoEtarioID(cliente_fecha_nacimiento) as rango_etario,
-	(select bis.sucursal_id from ONELEITO_BI.BI_Dim_sucursal bis where bis.sucursal_id = s.sucursal_id) as sucursal,
+	 bis.sucursal_id ,
 	ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora),month(ti.ticket_fecha_hora)) as tiempo,
-	envio_costo, 
+	SUM(envio_costo), 
 	    CASE 
         WHEN (e.envio_fecha_hora_entregado BETWEEN DATEADD(MINUTE, CAST(CONVERT(INT, e.envio_hora_inicio) * 60 AS INT), envio_fecha_programada) 
         AND DATEADD(MINUTE, CAST(CONVERT(INT, e.envio_hora_fin) * 60 AS INT), envio_fecha_programada)) 
@@ -506,6 +506,19 @@ BEGIN
 	join ONELEITO.Localidad l on l.localidad_id = c.cliente_localidad
 	join ONELEITO.Provincia p on p.provincia_id = c.cliente_provincia
 	join ONELEITO.Ticket ti on ti.ticket_id = e.envio_ticket
+	JOIN ONELEITO_BI.BI_Dim_ubicacion biu on biu.ubicacion_localidad = l.localidad_nombre and biu.ubicacion_provincia = p.provincia_nombre
+	JOIN ONELEITO_BI.BI_Dim_sucursal bis on bis.sucursal_id = s.sucursal_id
+	GROUP BY  
+	biu.ubicacion_id,
+	ONELEITO_BI.ObtenerRangoEtarioID(cliente_fecha_nacimiento),
+	 bis.sucursal_id,
+	ONELEITO_BI.ObtenerTiempoID(YEAR(ti.ticket_fecha_hora),month(ti.ticket_fecha_hora)) ,
+	CASE 
+        WHEN (e.envio_fecha_hora_entregado BETWEEN DATEADD(MINUTE, CAST(CONVERT(INT, e.envio_hora_inicio) * 60 AS INT), envio_fecha_programada) 
+        AND DATEADD(MINUTE, CAST(CONVERT(INT, e.envio_hora_fin) * 60 AS INT), envio_fecha_programada)) 
+        THEN 0 
+        ELSE 1 END
+	order by biu.ubicacion_id,sucursal_id,rango_etario,tiempo
 	
 END
 GO
@@ -569,7 +582,7 @@ BEGIN
         JOIN ONELEITO.Ticket ti on ti.ticket_id = pa.pago_ticket
         JOIN ONELEITO.Sucursal su on su.sucursal_id = ti.ticket_sucursal
         LEFT JOIN ONELEITO.Detalle_pago dp on dp.detalle_pago_id = pa.pago_detalle
-        JOIN ONELEITO.Cliente cl on cl.cliente_id = dp.detalle_pago_cliente
+		LEFT JOIN ONELEITO.Cliente cl on cl.cliente_id = dp.detalle_pago_cliente
         JOIN ONELEITO.Medio_Pago mp on mp.medio_pago_id = pa.pago_medio_pago
         JOIN ONELEITO.Tipo_Medio_Pago tmp on tmp.tipo_medio_pago_id = mp.medio_pago_tipo
         JOIN ONELEITO_BI.BI_Dim_medio_de_pago dmdp on dmdp.medio_de_pago_tipo = tmp.tipo_medio_pago_nombre and dmdp.medio_de_pago_detalle = mp.medio_pago_descripcion
@@ -633,7 +646,7 @@ CREATE VIEW ONELEITO_BI.Vista_1 AS
 SELECT U.ubicacion_localidad,
 		DT.tiempo_anio, 
 		DT.tiempo_mes,
-		SUM(hv.venta_monto_ventas) / COUNT(hv.venta_id) as'Promedio mensual por localidad' -- TODO:REVISAR EL PROMEDIO
+		SUM(hv.venta_monto_ventas) / COUNT(hv.venta_id) as'Promedio mensual por localidad'
 FROM ONELEITO_BI.BI_Hecho_venta hv
 JOIN ONELEITO_BI.BI_Dim_tiempo DT ON hv.venta_tiempo = DT.tiempo_id
 JOIN ONELEITO_BI.BI_Dim_ubicacion U on hv.venta_ubicacion = U.ubicacion_id
@@ -700,15 +713,16 @@ group by tm.tiempo_anio, tm.tiempo_mes
 GO
 
 /*
-6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año. TODO:CORREGIR!!!!
+6. Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
 */
 create view ONELEITO_BI.Vista_6 as
-select  BI_Dim_categoria.categoria_nombre, avg(promocion_descuento) as promedio_descuento,
+select TOP 3 BI_Dim_categoria.categoria_nombre, SUM(promocion_descuento) as promedio_descuento,
  tm.tiempo_anio, tm.tiempo_cuatrimestre
 from ONELEITO_BI.BI_Hecho_promocion
 join ONELEITO_BI.BI_Dim_categoria on BI_Hecho_Promocion.promocion_categoria = BI_Dim_categoria.categoria_id
 join ONELEITO_BI.BI_Dim_tiempo tm on BI_Hecho_Promocion.promocion_tiempo = tm.tiempo_id
 group by categoria_nombre, tm.tiempo_anio, tm.tiempo_cuatrimestre, categoria_nombre
+ORDER BY promedio_descuento DESC
 GO
 /*
 7. Porcentaje de cumplimiento de envíos en los tiempos programados por
@@ -753,7 +767,7 @@ cuotas.
 
 
 CREATE VIEW ONELEITO_BI.Vista_10 AS
-SELECT top 3
+SELECT TOP 3
     s.sucursal_nombre AS Sucursal,
     tm.tiempo_anio AS Año,
     tm.tiempo_mes AS Mes,
@@ -798,4 +812,5 @@ FROM ONELEITO_BI.BI_HECHO_PAGO hp
 JOIN ONELEITO_BI.BI_DIM_MEDIO_DE_PAGO mp ON mp.medio_de_pago_id = hp.pago_medio_pago
 JOIN ONELEITO_BI.BI_Dim_tiempo tm ON tm.tiempo_id = hp.pago_tiempo
 GROUP BY mp.medio_de_pago_tipo, tm.tiempo_cuatrimestre
+
 GO
